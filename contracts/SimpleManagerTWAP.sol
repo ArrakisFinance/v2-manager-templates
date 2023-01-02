@@ -16,6 +16,7 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
+import {hundred_pourcent} from "./constants/CSimpleManagerTWAP.sol";
 
 contract SimpleManagerTWAP is Ownable {
     using SafeERC20 for IERC20;
@@ -58,15 +59,16 @@ contract SimpleManagerTWAP is Ownable {
         require(params.twapDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(vaults[params.vault].twapOracle) == address(0), "AV");
-        address pool = uniFactory.getPool(
-            address(IArrakisV2(params.vault).token0()),
-            address(IArrakisV2(params.vault).token1()),
-            params.twapFeeTier
+        IUniswapV3Pool pool = IUniswapV3Pool(
+            _getPool(
+                address(IArrakisV2(params.vault).token0()),
+                address(IArrakisV2(params.vault).token1()),
+                params.twapFeeTier
+            )
         );
-        require(pool != address(0), "NP");
 
         vaults[params.vault] = VaultInfo({
-            twapOracle: IUniswapV3Pool(pool),
+            twapOracle: pool,
             twapDeviation: params.twapDeviation,
             twapDuration: params.twapDuration,
             maxSlippage: params.maxSlippage
@@ -89,27 +91,26 @@ contract SimpleManagerTWAP is Ownable {
         // check twap deviation for all fee tiers with deposits
         uint24[] memory checked = new uint24[](0);
         for (uint256 i; i < rebalanceParams_.deposits.length; i++) {
-            if (
-                !_includes(rebalanceParams_.deposits[i].range.feeTier, checked)
-            ) {
-                IUniswapV3Pool pool = IUniswapV3Pool(
-                    uniFactory.getPool(
-                        token0,
-                        token1,
-                        rebalanceParams_.deposits[i].range.feeTier
-                    )
-                );
+            if (_includes(rebalanceParams_.deposits[i].range.feeTier, checked))
+                continue;
 
-                Twap.checkDeviation(
-                    pool,
-                    vaultInfo.twapDuration,
-                    vaultInfo.twapDeviation
-                );
-                checked[checked.length] = rebalanceParams_
-                    .deposits[i]
-                    .range
-                    .feeTier;
-            }
+            IUniswapV3Pool pool = IUniswapV3Pool(
+                _getPool(
+                    token0,
+                    token1,
+                    rebalanceParams_.deposits[i].range.feeTier
+                )
+            );
+
+            Twap.checkDeviation(
+                pool,
+                vaultInfo.twapDuration,
+                vaultInfo.twapDeviation
+            );
+            checked[checked.length] = rebalanceParams_
+                .deposits[i]
+                .range
+                .feeTier;
         }
 
         // check expectedMinReturn on rebalance swap against twap
@@ -160,7 +161,7 @@ contract SimpleManagerTWAP is Ownable {
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
                         maxSlippage,
-                        10000
+                        hundred_pourcent
                     ),
                 "S0"
             );
@@ -174,11 +175,21 @@ contract SimpleManagerTWAP is Ownable {
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
                         maxSlippage,
-                        10000
+                        hundred_pourcent
                     ),
                 "S1"
             );
         }
+    }
+
+    function _getPool(
+        address token0_,
+        address token1_,
+        uint24 feeTier_
+    ) internal view returns (address pool) {
+        pool = uniFactory.getPool(token0_, token1_, feeTier_);
+
+        require(pool != address(0), "NP");
     }
 
     function _includes(
