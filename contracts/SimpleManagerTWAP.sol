@@ -89,10 +89,18 @@ contract SimpleManagerTWAP is Ownable {
         address token1 = address(IArrakisV2(vault_).token1());
 
         // check twap deviation for all fee tiers with deposits
-        uint24[] memory checked = new uint24[](0);
+        uint24[] memory checked = new uint24[](
+            rebalanceParams_.deposits.length
+        );
+        uint256 increment;
         for (uint256 i; i < rebalanceParams_.deposits.length; i++) {
-            if (_includes(rebalanceParams_.deposits[i].range.feeTier, checked))
-                continue;
+            if (
+                _includes(
+                    rebalanceParams_.deposits[i].range.feeTier,
+                    checked,
+                    increment
+                )
+            ) continue;
 
             IUniswapV3Pool pool = IUniswapV3Pool(
                 _getPool(
@@ -107,10 +115,8 @@ contract SimpleManagerTWAP is Ownable {
                 vaultInfo.twapDuration,
                 vaultInfo.twapDeviation
             );
-            checked[checked.length] = rebalanceParams_
-                .deposits[i]
-                .range
-                .feeTier;
+            checked[increment] = rebalanceParams_.deposits[i].range.feeTier;
+            increment++;
         }
 
         // check expectedMinReturn on rebalance swap against twap
@@ -134,13 +140,46 @@ contract SimpleManagerTWAP is Ownable {
         emit RebalanceVault(vault_, msg.sender);
     }
 
-    function withdrawCollectedFees(
-        IERC20[] calldata tokens,
-        address target_
+    // solhint-disable-next-line code-complexity
+    function withdrawAndCollectedFees(
+        IArrakisV2[] calldata vaults_,
+        address target
     ) external onlyOwner {
-        for (uint256 i; i < tokens.length; i++) {
-            tokens[i].safeTransfer(target_, tokens[i].balanceOf(address(this)));
+        require(vaults_.length > 0, "ZV");
+        require(target != address(0), "TZA");
+
+        address[] memory tokens = new address[](2 * vaults_.length);
+        uint256 increment;
+
+        // #region withdraw from vaults.
+
+        for (uint256 i; i < vaults_.length; i++) {
+            require(vaults_[i].manager() == address(this), "NM");
+
+            address token0 = address(vaults_[i].token0());
+            address token1 = address(vaults_[i].token1());
+
+            vaults_[i].withdrawManagerBalance();
+            if (!_includesAddress(token0, tokens, increment)) {
+                tokens[increment] = token0;
+                increment++;
+            }
+            if (!_includesAddress(token1, tokens, increment)) {
+                tokens[increment] = token1;
+                increment++;
+            }
         }
+
+        // #endregion withdraw from vaults.
+
+        // #region transfer token to target.
+
+        for (uint256 i; i < increment; i++) {
+            uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
+            if (balance > 0) IERC20(tokens[i]).safeTransfer(target, balance);
+        }
+
+        // #endregion transfer token to target.
     }
 
     function _checkMinReturn(
@@ -183,20 +222,37 @@ contract SimpleManagerTWAP is Ownable {
     }
 
     function _getPool(
-        address token0_,
-        address token1_,
-        uint24 feeTier_
+        address token0,
+        address token1,
+        uint24 feeTier
     ) internal view returns (address pool) {
-        pool = uniFactory.getPool(token0_, token1_, feeTier_);
+        pool = uniFactory.getPool(token0, token1, feeTier);
 
         require(pool != address(0), "NP");
     }
 
     function _includes(
         uint24 target,
-        uint24[] memory set
+        uint24[] memory set,
+        uint256 upperIndex
     ) internal pure returns (bool) {
-        for (uint256 j; j < set.length; j++) {
+        require(set.length >= upperIndex, "OOR");
+        for (uint256 j; j < upperIndex; j++) {
+            if (set[j] == target) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function _includesAddress(
+        address target,
+        address[] memory set,
+        uint256 upperIndex
+    ) internal pure returns (bool) {
+        require(set.length >= upperIndex, "OOR");
+        for (uint256 j; j < upperIndex; j++) {
             if (set[j] == target) {
                 return true;
             }
