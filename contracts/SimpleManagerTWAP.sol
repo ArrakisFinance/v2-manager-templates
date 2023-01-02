@@ -14,12 +14,7 @@ import {
     Range,
     Rebalance
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
-import {
-    FullMath,
-    IDecimals,
-    IUniswapV3Pool,
-    Twap
-} from "./libraries/Twap.sol";
+import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
 
 contract SimpleManagerTWAP is Ownable {
@@ -40,8 +35,8 @@ contract SimpleManagerTWAP is Ownable {
         uint24 maxSlippage;
     }
 
-    IUniswapV3Factory immutable public uniFactory;
-    uint16 immutable public managerFeeBPS;
+    IUniswapV3Factory public immutable uniFactory;
+    uint16 public immutable managerFeeBPS;
 
     mapping(address => VaultInfo) public vaults;
 
@@ -57,7 +52,9 @@ contract SimpleManagerTWAP is Ownable {
         managerFeeBPS = managerFeeBPS_;
     }
 
-    function initManagement(SetupParams calldata params) external onlyVaultOwner(params.vault) {
+    function initManagement(
+        SetupParams calldata params
+    ) external onlyVaultOwner(params.vault) {
         require(params.twapDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(vaults[params.vault].twapOracle) == address(0), "AV");
@@ -92,15 +89,26 @@ contract SimpleManagerTWAP is Ownable {
         // check twap deviation for all fee tiers with deposits
         uint24[] memory checked = new uint24[](0);
         for (uint256 i; i < rebalanceParams_.deposits.length; i++) {
-            if (!_includes(rebalanceParams_.deposits[i].range.feeTier, checked)) {
-                IUniswapV3Pool pool = IUniswapV3Pool(uniFactory.getPool(
-                    token0,
-                    token1,
-                    rebalanceParams_.deposits[i].range.feeTier
-                ));
+            if (
+                !_includes(rebalanceParams_.deposits[i].range.feeTier, checked)
+            ) {
+                IUniswapV3Pool pool = IUniswapV3Pool(
+                    uniFactory.getPool(
+                        token0,
+                        token1,
+                        rebalanceParams_.deposits[i].range.feeTier
+                    )
+                );
 
-                Twap.checkDeviation(pool, vaultInfo.twapDuration, vaultInfo.twapDeviation);
-                checked[checked.length] = rebalanceParams_.deposits[i].range.feeTier;
+                Twap.checkDeviation(
+                    pool,
+                    vaultInfo.twapDuration,
+                    vaultInfo.twapDeviation
+                );
+                checked[checked.length] = rebalanceParams_
+                    .deposits[i]
+                    .range
+                    .feeTier;
             }
         }
 
@@ -125,7 +133,10 @@ contract SimpleManagerTWAP is Ownable {
         emit RebalanceVault(vault_, msg.sender);
     }
 
-    function withdrawCollectedFees(IERC20[] calldata tokens, address target_) external onlyOwner {
+    function withdrawCollectedFees(
+        IERC20[] calldata tokens,
+        address target_
+    ) external onlyOwner {
         for (uint256 i; i < tokens.length; i++) {
             tokens[i].safeTransfer(target_, tokens[i].balanceOf(address(this)));
         }
@@ -143,7 +154,7 @@ contract SimpleManagerTWAP is Ownable {
             require(
                 FullMath.mulDiv(
                     rebalanceParams_.swap.expectedMinReturn,
-                    10**decimals0,
+                    10 ** decimals0,
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
@@ -157,7 +168,7 @@ contract SimpleManagerTWAP is Ownable {
             require(
                 FullMath.mulDiv(
                     rebalanceParams_.swap.expectedMinReturn,
-                    10**decimals1,
+                    10 ** decimals1,
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
@@ -170,7 +181,10 @@ contract SimpleManagerTWAP is Ownable {
         }
     }
 
-    function _includes(uint24 target, uint24[] memory set) internal pure returns (bool) {
+    function _includes(
+        uint24 target,
+        uint24[] memory set
+    ) internal pure returns (bool) {
         for (uint256 j; j < set.length; j++) {
             if (set[j] == target) {
                 return true;
