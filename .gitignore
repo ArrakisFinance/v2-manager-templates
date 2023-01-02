@@ -32,3 +32,8 @@ dist
 # VS Code
 .vscode
 
+# out 
+out
+
+# foundry cache
+forge-cache
