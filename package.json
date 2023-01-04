@@ -24,7 +24,8 @@
     "postinstall": "husky install",
     "prepack": "pinst --disable",
     "postpack": "pinst --enable",
-    "test": "forge test",
+    "test": "forge test -vvv",
+    "coverage": "forge coverage",
     "test-hardhat": "npx hardhat test",
     "verify": "npx hardhat etherscan-verify"
   },
