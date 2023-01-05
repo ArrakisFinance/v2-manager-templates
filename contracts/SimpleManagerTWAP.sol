@@ -16,7 +16,9 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
+
 import {hundred_percent, ten_percent} from "./constants/CSimpleManagerTWAP.sol";
+
 
 contract SimpleManagerTWAP is Ownable {
     using SafeERC20 for IERC20;
