@@ -16,7 +16,7 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
-import {hundred_pourcent} from "./constants/CSimpleManagerTWAP.sol";
+import {hundred_percent} from "./constants/CSimpleManagerTWAP.sol";
 
 contract SimpleManagerTWAP is Ownable {
     using SafeERC20 for IERC20;
@@ -140,7 +140,7 @@ contract SimpleManagerTWAP is Ownable {
     }
 
     // solhint-disable-next-line code-complexity
-    function withdrawAndCollectedFees(
+    function withdrawAndCollectFees(
         IArrakisV2[] calldata vaults_,
         address target
     ) external onlyOwner {
@@ -189,7 +189,7 @@ contract SimpleManagerTWAP is Ownable {
         uint8 decimals0,
         uint8 decimals1
     ) internal view {
-        require(maxSlippage < hundred_pourcent, "MS");
+        require(maxSlippage < hundred_percent, "MS");
 
         if (rebalanceParams_.swap.zeroForOne) {
             require(
@@ -200,8 +200,8 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
-                        hundred_pourcent - maxSlippage,
-                        hundred_pourcent
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S0"
             );
@@ -214,8 +214,8 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice1(twapOracle, twapDuration),
-                        hundred_pourcent - maxSlippage,
-                        hundred_pourcent
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S1"
             );

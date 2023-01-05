@@ -46,7 +46,7 @@ import {
     swapRouter,
     vm
 } from "../constants/ContractsInstances.sol";
-import {hundred_pourcent} from "contracts/constants/CSimpleManagerTWAP.sol";
+import {hundred_percent} from "contracts/constants/CSimpleManagerTWAP.sol";
 
 // solhint-disable-next-line max-states-count
 contract SimpleManagerTWAPTest is TestWrapper {
@@ -436,8 +436,8 @@ contract SimpleManagerTWAPTest is TestWrapper {
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
                 Twap.getPrice0(twapOracle, twapDuration),
-                hundred_pourcent - maxSlippage,
-                hundred_pourcent
+                hundred_percent - maxSlippage,
+                hundred_percent
             ),
             AMOUNT_OF_USDC,
             10 ** ERC20(address(usdc)).decimals()
@@ -529,8 +529,8 @@ contract SimpleManagerTWAPTest is TestWrapper {
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
                 Twap.getPrice0(twapOracle, twapDuration),
-                hundred_pourcent - maxSlippage,
-                hundred_pourcent
+                hundred_percent - maxSlippage,
+                hundred_percent
             ),
             AMOUNT_OF_USDC,
             10 ** ERC20(address(usdc)).decimals()
@@ -620,8 +620,8 @@ contract SimpleManagerTWAPTest is TestWrapper {
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
                 Twap.getPrice1(twapOracle, twapDuration),
-                hundred_pourcent - maxSlippage,
-                hundred_pourcent
+                hundred_percent - maxSlippage,
+                hundred_percent
             ),
             AMOUNT_OF_WETH,
             10 ** ERC20(address(weth)).decimals()
@@ -680,13 +680,13 @@ contract SimpleManagerTWAPTest is TestWrapper {
 
     // #endregion test rebalance.
 
-    // #region test withdrawAndCollectedFees.
+    // #region test withdrawAndCollectFees.
 
     // solhint-disable-next-line ordering, function-max-lines
-    function testWithdrawAndCollectedFees() public {
+    function testWithdrawAndCollectFees() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
 
-        _withdrawAndCollectedFeesSetup();
+        _withdrawAndCollectFeesSetup();
 
         // get some usdc and weth tokens.
         _getTokens();
@@ -724,7 +724,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         IArrakisV2[] memory vaults = new IArrakisV2[](1);
         vaults[0] = vaultV2;
 
-        simpleManagerTWAP.withdrawAndCollectedFees(vaults, address(this));
+        simpleManagerTWAP.withdrawAndCollectFees(vaults, address(this));
 
         assertEq(
             usdcBalanceBefore + managerBalance0,
@@ -736,7 +736,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         );
     }
 
-    function testWithdrawAndCollectedFeesMultipleVault() public {
+    function testWithdrawAndCollectFeesMultipleVault() public {
         // #region create second vault.
 
         /* solhint-disable reentrancy */
@@ -780,7 +780,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
         IArrakisV2 secondVaultV2 = IArrakisV2(secondVault);
 
-        _withdrawAndCollectedFeesSetup();
+        _withdrawAndCollectFeesSetup();
 
         // get some usdc and weth tokens.
         _getTokens();
@@ -836,7 +836,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         vaults[0] = vaultV2;
         vaults[1] = secondVaultV2;
 
-        simpleManagerTWAP.withdrawAndCollectedFees(vaults, address(this));
+        simpleManagerTWAP.withdrawAndCollectFees(vaults, address(this));
 
         assertEq(
             usdcBalanceBefore + (managerBalance0 * 2),
@@ -848,7 +848,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         );
     }
 
-    function _withdrawAndCollectedFeesSetup() internal {
+    function _withdrawAndCollectFeesSetup() internal {
         // do init management.
 
         SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
@@ -865,7 +865,7 @@ contract SimpleManagerTWAPTest is TestWrapper {
         simpleManagerTWAP.initManagement(params);
     }
 
-    // #endregion test withdrawAndCollectedFees.
+    // #endregion test withdrawAndCollectFees.
 
     // #region internal functions.
 
