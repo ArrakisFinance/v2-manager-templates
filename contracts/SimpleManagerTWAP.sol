@@ -17,7 +17,7 @@ import {
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
 import {
-    hundred_pourcent,
+    hundred_percent,
     ten_pourcent
 } from "./constants/CSimpleManagerTWAP.sol";
 
@@ -146,7 +146,7 @@ contract SimpleManagerTWAP is Ownable {
     }
 
     // solhint-disable-next-line code-complexity
-    function withdrawAndCollectedFees(
+    function withdrawAndCollectFees(
         IArrakisV2[] calldata vaults_,
         address target
     ) external onlyOwner {
@@ -204,8 +204,8 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
-                        hundred_pourcent - maxSlippage,
-                        hundred_pourcent
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S0"
             );
@@ -218,8 +218,8 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice1(twapOracle, twapDuration),
-                        hundred_pourcent - maxSlippage,
-                        hundred_pourcent
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S1"
             );
