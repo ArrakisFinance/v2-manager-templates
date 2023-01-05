@@ -83,7 +83,6 @@ contract SimpleManagerTWAP is Ownable {
         Range[] calldata rangesToRemove_
     ) external onlyOwner {
         VaultInfo memory vaultInfo = vaults[vault_];
-        require(address(vaultInfo.twapOracle) != address(0), "NV");
 
         address token0 = address(IArrakisV2(vault_).token0());
         address token1 = address(IArrakisV2(vault_).token1());
@@ -190,6 +189,8 @@ contract SimpleManagerTWAP is Ownable {
         uint8 decimals0,
         uint8 decimals1
     ) internal view {
+        require(maxSlippage < hundred_pourcent, "MS");
+
         if (rebalanceParams_.swap.zeroForOne) {
             require(
                 FullMath.mulDiv(
@@ -199,7 +200,7 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
-                        maxSlippage,
+                        hundred_pourcent - maxSlippage,
                         hundred_pourcent
                     ),
                 "S0"
@@ -212,8 +213,8 @@ contract SimpleManagerTWAP is Ownable {
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
-                        Twap.getPrice0(twapOracle, twapDuration),
-                        maxSlippage,
+                        Twap.getPrice1(twapOracle, twapDuration),
+                        hundred_pourcent - maxSlippage,
                         hundred_pourcent
                     ),
                 "S1"
