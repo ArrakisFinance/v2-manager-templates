@@ -11,8 +11,9 @@
     "src"
   ],
   "scripts": {
-    "build": "yarn compile && npx tsc",
-    "compile": "npx hardhat compile --force",
+    "build": "yarn compile && yarn compile-hardhat && npx tsc",
+    "compile": "forge build --force",
+    "compile-hardhat": "npx hardhat compile --force",
     "clean": "rm -rf dist && npx hardhat clean",
     "deploy": "npx hardhat deploy ",
     "format": "prettier --write .",
@@ -23,7 +24,9 @@
     "postinstall": "husky install",
     "prepack": "pinst --disable",
     "postpack": "pinst --enable",
-    "test": "npx hardhat test",
+    "test": "forge test -vvv",
+    "coverage": "forge coverage",
+    "test-hardhat": "npx hardhat test",
     "verify": "npx hardhat etherscan-verify"
   },
   "devDependencies": {
