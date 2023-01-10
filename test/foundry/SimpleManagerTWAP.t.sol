@@ -175,6 +175,22 @@ contract SimpleManagerTWAPTest is TestWrapper {
         simpleManagerTWAP.initManagement(params);
     }
 
+    function testInitManagementSlippageTooHigh() public {
+        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
+            .SetupParams({
+                vault: vault,
+                twapFeeTier: feeTier,
+                twapDeviation: 100,
+                twapDuration: 100,
+                maxSlippage: 1001
+            });
+
+        vm.prank(msg.sender);
+        vm.expectRevert(bytes("MS"));
+
+        simpleManagerTWAP.initManagement(params);
+    }
+
     function testInitManagementWrongFeeTier() public {
         SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
             .SetupParams({

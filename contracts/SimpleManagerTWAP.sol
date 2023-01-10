@@ -16,7 +16,9 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
-import {hundred_percent} from "./constants/CSimpleManagerTWAP.sol";
+
+import {hundred_percent, ten_percent} from "./constants/CSimpleManagerTWAP.sol";
+
 
 contract SimpleManagerTWAP is Ownable {
     using SafeERC20 for IERC20;
@@ -59,6 +61,9 @@ contract SimpleManagerTWAP is Ownable {
         require(params.twapDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(vaults[params.vault].twapOracle) == address(0), "AV");
+        /// @dev 10% max slippage allowed by the manager.
+        require(params.maxSlippage <= ten_percent, "MS");
+
         IUniswapV3Pool pool = IUniswapV3Pool(
             _getPool(
                 address(IArrakisV2(params.vault).token0()),
@@ -189,8 +194,6 @@ contract SimpleManagerTWAP is Ownable {
         uint8 decimals0,
         uint8 decimals1
     ) internal view {
-        require(maxSlippage < hundred_percent, "MS");
-
         if (rebalanceParams_.swap.zeroForOne) {
             require(
                 FullMath.mulDiv(
