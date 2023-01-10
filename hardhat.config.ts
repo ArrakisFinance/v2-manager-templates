@@ -25,7 +25,7 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 0,
-    }
+    },
   },
 
   etherscan: {
