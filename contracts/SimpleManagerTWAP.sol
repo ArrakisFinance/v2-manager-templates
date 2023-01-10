@@ -16,7 +16,9 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
-import {hundred_pourcent} from "./constants/CSimpleManagerTWAP.sol";
+
+import {hundred_percent, ten_percent} from "./constants/CSimpleManagerTWAP.sol";
+
 
 contract SimpleManagerTWAP is Ownable {
     using SafeERC20 for IERC20;
@@ -59,6 +61,9 @@ contract SimpleManagerTWAP is Ownable {
         require(params.twapDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(vaults[params.vault].twapOracle) == address(0), "AV");
+        /// @dev 10% max slippage allowed by the manager.
+        require(params.maxSlippage <= ten_percent, "MS");
+
         IUniswapV3Pool pool = IUniswapV3Pool(
             _getPool(
                 address(IArrakisV2(params.vault).token0()),
@@ -83,7 +88,6 @@ contract SimpleManagerTWAP is Ownable {
         Range[] calldata rangesToRemove_
     ) external onlyOwner {
         VaultInfo memory vaultInfo = vaults[vault_];
-        require(address(vaultInfo.twapOracle) != address(0), "NV");
 
         address token0 = address(IArrakisV2(vault_).token0());
         address token1 = address(IArrakisV2(vault_).token1());
@@ -141,7 +145,7 @@ contract SimpleManagerTWAP is Ownable {
     }
 
     // solhint-disable-next-line code-complexity
-    function withdrawAndCollectedFees(
+    function withdrawAndCollectFees(
         IArrakisV2[] calldata vaults_,
         address target
     ) external onlyOwner {
@@ -199,8 +203,8 @@ contract SimpleManagerTWAP is Ownable {
                 ) >
                     FullMath.mulDiv(
                         Twap.getPrice0(twapOracle, twapDuration),
-                        maxSlippage,
-                        hundred_pourcent
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S0"
             );
@@ -212,9 +216,9 @@ contract SimpleManagerTWAP is Ownable {
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
-                        Twap.getPrice0(twapOracle, twapDuration),
-                        maxSlippage,
-                        hundred_pourcent
+                        Twap.getPrice1(twapOracle, twapDuration),
+                        hundred_percent - maxSlippage,
+                        hundred_percent
                     ),
                 "S1"
             );

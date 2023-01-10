@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "yarn compile && yarn compile-hardhat && npx tsc",
-    "compile": "forge build",
+    "compile": "forge build --force",
     "compile-hardhat": "npx hardhat compile --force",
     "clean": "rm -rf dist && npx hardhat clean",
     "deploy": "npx hardhat deploy ",
@@ -24,7 +24,8 @@
     "postinstall": "husky install",
     "prepack": "pinst --disable",
     "postpack": "pinst --enable",
-    "test": "forge test",
+    "test": "forge test -vvv",
+    "coverage": "forge coverage",
     "test-hardhat": "npx hardhat test",
     "verify": "npx hardhat etherscan-verify"
   },
