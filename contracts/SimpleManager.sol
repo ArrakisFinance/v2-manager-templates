@@ -5,6 +5,7 @@ import {
     IERC20,
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
     IUniswapV3Factory
@@ -16,71 +17,90 @@ import {
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath, IDecimals, IUniswapV3Pool, Twap} from "./libraries/Twap.sol";
 import {IOwnable} from "./interfaces/IOwnable.sol";
+import {IOracleWrapper} from "./interfaces/IOracleWrapper.sol";
 
-import {hundred_percent, ten_percent} from "./constants/CSimpleManagerTWAP.sol";
+import {hundred_percent, ten_percent} from "./constants/CSimpleManager.sol";
 
-
-contract SimpleManagerTWAP is Ownable {
+/// @title SimpleManager
+/// @dev Most simple manager to manage public vault on Arrakis V2.
+contract SimpleManager is Ownable {
     using SafeERC20 for IERC20;
 
     struct VaultInfo {
-        IUniswapV3Pool twapOracle;
-        int24 twapDeviation;
+        IOracleWrapper oracle;
         uint24 twapDuration;
+        uint24 maxDeviation;
         uint24 maxSlippage;
     }
 
     struct SetupParams {
         address vault;
-        uint24 twapFeeTier;
-        int24 twapDeviation;
+        IOracleWrapper oracle;
         uint24 twapDuration;
+        uint24 maxDeviation;
         uint24 maxSlippage;
     }
 
     IUniswapV3Factory public immutable uniFactory;
-    uint16 public immutable managerFeeBPS;
 
     mapping(address => VaultInfo) public vaults;
 
     event RebalanceVault(address vault, address caller);
+    event InitManagement(
+        address vault,
+        address oracle,
+        uint24 twapDuration,
+        uint24 maxDeviation,
+        uint24 maxSlippage
+    );
 
     modifier onlyVaultOwner(address vault) {
         require(msg.sender == IOwnable(vault).owner(), "NO");
         _;
     }
 
-    constructor(IUniswapV3Factory uniFactory_, uint16 managerFeeBPS_) {
+    constructor(IUniswapV3Factory uniFactory_) {
         uniFactory = uniFactory_;
-        managerFeeBPS = managerFeeBPS_;
     }
 
+    /// @notice Initialize management
+    /// @dev onced initialize Arrakis will start to manage the initialize vault
+    /// @param params SetupParams struct containing data for manager vault
     function initManagement(
         SetupParams calldata params
     ) external onlyVaultOwner(params.vault) {
-        require(params.twapDeviation > 0, "DN");
+        require(params.maxDeviation > 0, "DN");
+        require(params.twapDuration > 0, "TDZ");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
-        require(address(vaults[params.vault].twapOracle) == address(0), "AV");
+        require(address(params.oracle) != address(0), "OZA");
+        require(address(vaults[params.vault].oracle) == address(0), "AV");
         /// @dev 10% max slippage allowed by the manager.
         require(params.maxSlippage <= ten_percent, "MS");
 
-        IUniswapV3Pool pool = IUniswapV3Pool(
-            _getPool(
-                address(IArrakisV2(params.vault).token0()),
-                address(IArrakisV2(params.vault).token1()),
-                params.twapFeeTier
-            )
-        );
-
         vaults[params.vault] = VaultInfo({
-            twapOracle: pool,
-            twapDeviation: params.twapDeviation,
+            oracle: params.oracle,
             twapDuration: params.twapDuration,
+            maxDeviation: params.maxDeviation,
             maxSlippage: params.maxSlippage
         });
+
+        emit InitManagement(
+            params.vault,
+            address(params.oracle),
+            params.twapDuration,
+            params.maxDeviation,
+            params.maxSlippage
+        );
     }
 
-    // solhint-disable-next-line function-max-lines
+    /// @notice Rebalance vault
+    /// @dev only the owner of the contract Arrakis Finance can call the contract
+    /// @param vault_ address of the Arrakis V2 vault to rebalance
+    /// @param ranges_ array of ranges where the rebalance action will
+    /// deposit tokens
+    /// @param rebalanceParams_ rebalance parameters.
+    /// @param rangesToRemove_ array of ranges where rebalance will remove liquidity
+    // solhint-disable-next-line function-max-lines, code-complexity
     function rebalance(
         address vault_,
         Range[] calldata ranges_,
@@ -89,14 +109,27 @@ contract SimpleManagerTWAP is Ownable {
     ) external onlyOwner {
         VaultInfo memory vaultInfo = vaults[vault_];
 
-        address token0 = address(IArrakisV2(vault_).token0());
-        address token1 = address(IArrakisV2(vault_).token1());
-
-        // check twap deviation for all fee tiers with deposits
-        uint24[] memory checked = new uint24[](
-            rebalanceParams_.deposits.length
-        );
+        address token0;
+        address token1;
+        uint8 token1Decimals;
+        uint24[] memory checked;
+        uint256 oraclePrice;
         uint256 increment;
+
+        if (
+            rebalanceParams_.deposits.length > 0 ||
+            rebalanceParams_.swap.amountIn > 0
+        ) {
+            token0 = address(IArrakisV2(vault_).token0());
+            token1 = address(IArrakisV2(vault_).token1());
+            token1Decimals = IDecimals(token1).decimals();
+        }
+
+        if (rebalanceParams_.deposits.length > 0) {
+            checked = new uint24[](rebalanceParams_.deposits.length);
+            oraclePrice = vaultInfo.oracle.getPrice0();
+        }
+
         for (uint256 i; i < rebalanceParams_.deposits.length; i++) {
             if (
                 _includes(
@@ -114,24 +147,27 @@ contract SimpleManagerTWAP is Ownable {
                 )
             );
 
-            Twap.checkDeviation(
-                pool,
-                vaultInfo.twapDuration,
-                vaultInfo.twapDeviation
+            uint256 poolPrice = Twap.getPrice0(pool, vaultInfo.twapDuration);
+
+            _checkDeviation(
+                poolPrice,
+                oraclePrice,
+                vaultInfo.maxDeviation,
+                token1Decimals
             );
+
             checked[increment] = rebalanceParams_.deposits[i].range.feeTier;
             increment++;
         }
 
-        // check expectedMinReturn on rebalance swap against twap
+        // check expectedMinReturn on rebalance swap against oracle
         if (rebalanceParams_.swap.amountIn > 0) {
             _checkMinReturn(
                 rebalanceParams_,
-                vaultInfo.twapOracle,
-                vaultInfo.twapDuration,
+                vaultInfo.oracle,
                 vaultInfo.maxSlippage,
                 IDecimals(token0).decimals(),
-                IDecimals(token1).decimals()
+                token1Decimals
             );
         }
 
@@ -144,6 +180,10 @@ contract SimpleManagerTWAP is Ownable {
         emit RebalanceVault(vault_, msg.sender);
     }
 
+    /// @notice Withdraw and Collect Fees generated by vaults on Uni v3
+    /// @dev only the owner of the contract Arrakis Finance can call the contract
+    /// @param vaults_ array of vaults where to collect fees
+    /// @param target receiver of fees collection
     // solhint-disable-next-line code-complexity
     function withdrawAndCollectFees(
         IArrakisV2[] calldata vaults_,
@@ -188,8 +228,7 @@ contract SimpleManagerTWAP is Ownable {
 
     function _checkMinReturn(
         Rebalance memory rebalanceParams_,
-        IUniswapV3Pool twapOracle,
-        uint24 twapDuration,
+        IOracleWrapper oracle_,
         uint24 maxSlippage,
         uint8 decimals0,
         uint8 decimals1
@@ -202,7 +241,7 @@ contract SimpleManagerTWAP is Ownable {
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
-                        Twap.getPrice0(twapOracle, twapDuration),
+                        oracle_.getPrice0(),
                         hundred_percent - maxSlippage,
                         hundred_percent
                     ),
@@ -216,7 +255,7 @@ contract SimpleManagerTWAP is Ownable {
                     rebalanceParams_.swap.amountIn
                 ) >
                     FullMath.mulDiv(
-                        Twap.getPrice1(twapOracle, twapDuration),
+                        oracle_.getPrice1(),
                         hundred_percent - maxSlippage,
                         hundred_percent
                     ),
@@ -233,6 +272,27 @@ contract SimpleManagerTWAP is Ownable {
         pool = uniFactory.getPool(token0, token1, feeTier);
 
         require(pool != address(0), "NP");
+    }
+
+    function _checkDeviation(
+        uint256 currentPrice_,
+        uint256 oraclePrice_,
+        uint24 maxDeviation_,
+        uint8 priceDecimals_
+    ) internal pure {
+        uint256 deviation = FullMath.mulDiv(
+            FullMath.mulDiv(
+                currentPrice_ > oraclePrice_
+                    ? currentPrice_ - oraclePrice_
+                    : oraclePrice_ - currentPrice_,
+                10 ** priceDecimals_,
+                oraclePrice_
+            ),
+            hundred_percent,
+            10 ** priceDecimals_
+        );
+
+        require(deviation <= maxDeviation_, "maxDeviation");
     }
 
     function _includes(
