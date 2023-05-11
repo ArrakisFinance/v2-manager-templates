@@ -6,7 +6,9 @@ import {
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {
     EnumerableSet
 } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -30,7 +32,7 @@ import {hundred_percent, ten_percent} from "./constants/CSimpleManager.sol";
 
 /// @title SimpleManager
 /// @dev Most simple manager to manage public vault on Arrakis V2.
-contract SimpleManager is Ownable {
+contract SimpleManager is OwnableUpgradeable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -70,6 +72,10 @@ contract SimpleManager is Ownable {
 
     constructor(IUniswapV3Factory uniFactory_) {
         uniFactory = uniFactory_;
+    }
+
+    function initialize(address owner_) external initializer {
+        _transferOwnership(owner_);
     }
 
     /// @notice Initialize management

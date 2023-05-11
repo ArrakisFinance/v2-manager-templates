@@ -17,6 +17,12 @@ import {
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {
+    ProxyAdmin
+} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
     IArrakisV2Factory,
     InitializePayload
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2Factory.sol";
@@ -71,7 +77,19 @@ contract SimpleManagerTest is TestWrapper {
     address[] public operators;
 
     constructor() {
-        simpleManager = new SimpleManager(IUniswapV3Factory(uniFactory));
+        SimpleManager impl = new SimpleManager(IUniswapV3Factory(uniFactory));
+
+        ProxyAdmin admin = new ProxyAdmin();
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(impl),
+            address(admin),
+            ""
+        );
+
+        simpleManager = SimpleManager(address(proxy));
+
+        simpleManager.initialize(address(this));
     }
 
     function setUp() public {
