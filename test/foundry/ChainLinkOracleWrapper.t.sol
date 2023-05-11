@@ -77,67 +77,19 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
     int24 public upperTick;
     int24 public tickSpacing;
     uint24 public feeTier;
+    address[] public operators;
 
     constructor() {
         simpleManager = new SimpleManager(IUniswapV3Factory(uniFactory));
     }
 
     // solhint-disable-next-line no-empty-blocks
-    function setUp() public {}
+    function setUp() public {
+        operators = new address[](1);
+        operators[0] = address(this);
+    }
 
     // #region test rebalance USDC / WETH.
-
-    // solhint-disable-next-line function-max-lines
-    function testSingleRangeNoSwapRebalanceNotCalledByOwnerUSDCWETH() public {
-        _setupUSDCWETH();
-
-        IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManager.
-        _rebalanceSetup();
-
-        // get some usdc and weth tokens.
-        _getTokensUSDCWETH();
-
-        //  mint some vault tokens.
-        (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0, amountOfToken1);
-
-        vm.prank(msg.sender);
-        usdc.approve(vault, amount0);
-
-        vm.prank(msg.sender);
-        weth.approve(vault, amount1);
-
-        vm.prank(msg.sender);
-        vaultV2.mint(mintAmount, msg.sender);
-
-        // get rebalance payload.
-        Range memory range = Range({
-            lowerTick: lowerTick,
-            upperTick: upperTick,
-            feeTier: feeTier
-        });
-        RangeWeight[] memory rangeWeights = new RangeWeight[](1);
-        rangeWeights[0] = RangeWeight({weight: 10000, range: range});
-
-        Rebalance memory rebalancePayload = resolver.standardRebalance(
-            rangeWeights,
-            vaultV2
-        );
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vm.prank(msg.sender);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
-    }
 
     // solhint-disable-next-line function-max-lines
     function testSingleRangeNoSwapRebalanceUSDCWETH() public {
@@ -181,6 +133,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -238,6 +191,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[1] = range1;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -288,7 +242,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -328,6 +282,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
         simpleManager.rebalance(
@@ -380,7 +335,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -420,6 +375,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -470,7 +426,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -510,6 +466,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -579,58 +536,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
     // #region test rebalance USDT / WETH.
 
     // solhint-disable-next-line function-max-lines
-    function testSingleRangeNoSwapRebalanceNotCalledByOwnerUSDTWETH() public {
-        _setupUSDTWETH();
-
-        IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManager.
-        _rebalanceSetup();
-
-        // get some usdc and weth tokens.
-        _getTokensUSDTWETH();
-
-        //  mint some vault tokens.
-        (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0, amountOfToken1);
-
-        vm.prank(msg.sender);
-        weth.approve(vault, amount0);
-
-        vm.prank(msg.sender);
-        usdt.approve(vault, amount1);
-
-        vm.prank(msg.sender);
-        vaultV2.mint(mintAmount, msg.sender);
-
-        // get rebalance payload.
-        Range memory range = Range({
-            lowerTick: lowerTick,
-            upperTick: upperTick,
-            feeTier: feeTier
-        });
-        RangeWeight[] memory rangeWeights = new RangeWeight[](1);
-        rangeWeights[0] = RangeWeight({weight: 10000, range: range});
-
-        Rebalance memory rebalancePayload = resolver.standardRebalance(
-            rangeWeights,
-            vaultV2
-        );
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vm.prank(msg.sender);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
-    }
-
-    // solhint-disable-next-line function-max-lines
     function testSingleRangeNoSwapRebalanceUSDTWETH() public {
         _setupUSDTWETH();
 
@@ -672,6 +577,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -729,6 +635,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[1] = range1;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -779,7 +686,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -819,6 +726,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
         simpleManager.rebalance(
@@ -871,7 +779,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -911,6 +819,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -961,7 +870,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1001,6 +910,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1070,58 +980,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
     // #region test rebalance AAVE / WETH.
 
     // solhint-disable-next-line function-max-lines
-    function testSingleRangeNoSwapRebalanceNotCalledByOwnerAAVEWETH() public {
-        _setupAAVEWETH();
-
-        IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManager.
-        _rebalanceSetup();
-
-        // get some aave and weth tokens.
-        _getTokensAAVEWETH();
-
-        //  mint some vault tokens.
-        (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0, amountOfToken1);
-
-        vm.prank(msg.sender);
-        weth.approve(vault, amount0);
-
-        vm.prank(msg.sender);
-        aave.approve(vault, amount1);
-
-        vm.prank(msg.sender);
-        vaultV2.mint(mintAmount, msg.sender);
-
-        // get rebalance payload.
-        Range memory range = Range({
-            lowerTick: lowerTick,
-            upperTick: upperTick,
-            feeTier: feeTier
-        });
-        RangeWeight[] memory rangeWeights = new RangeWeight[](1);
-        rangeWeights[0] = RangeWeight({weight: 10000, range: range});
-
-        Rebalance memory rebalancePayload = resolver.standardRebalance(
-            rangeWeights,
-            vaultV2
-        );
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vm.prank(msg.sender);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
-    }
-
-    // solhint-disable-next-line function-max-lines
     function testSingleRangeNoSwapRebalanceAAVEWETH() public {
         _setupAAVEWETH();
 
@@ -1163,6 +1021,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1220,6 +1079,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[1] = range1;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1270,7 +1130,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1310,6 +1170,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
         simpleManager.rebalance(
@@ -1362,7 +1223,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1401,7 +1262,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1452,7 +1313,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1491,7 +1352,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1561,58 +1422,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
     // #region test rebalance WMATIC / WETH.
 
     // solhint-disable-next-line function-max-lines
-    function testSingleRangeNoSwapRebalanceNotCalledByOwnerWMATICWETH() public {
-        _setupWMATICWETH();
-
-        IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManager.
-        _rebalanceSetup();
-
-        // get some usdc and weth tokens.
-        _getTokensWMATICWETH();
-
-        //  mint some vault tokens.
-        (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0, amountOfToken1);
-
-        vm.prank(msg.sender);
-        wmatic.approve(vault, amount0);
-
-        vm.prank(msg.sender);
-        weth.approve(vault, amount1);
-
-        vm.prank(msg.sender);
-        vaultV2.mint(mintAmount, msg.sender);
-
-        // get rebalance payload.
-        Range memory range = Range({
-            lowerTick: lowerTick,
-            upperTick: upperTick,
-            feeTier: feeTier
-        });
-        RangeWeight[] memory rangeWeights = new RangeWeight[](1);
-        rangeWeights[0] = RangeWeight({weight: 10000, range: range});
-
-        Rebalance memory rebalancePayload = resolver.standardRebalance(
-            rangeWeights,
-            vaultV2
-        );
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        vm.prank(msg.sender);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
-    }
-
-    // solhint-disable-next-line function-max-lines
     function testSingleRangeNoSwapRebalanceWMATICWETH() public {
         _setupWMATICWETH();
 
@@ -1653,7 +1462,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1710,7 +1519,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         ranges[0] = range0;
         ranges[1] = range1;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1761,7 +1570,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1800,7 +1609,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
         simpleManager.rebalance(
@@ -1853,7 +1662,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1892,7 +1701,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -1943,7 +1752,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -1982,7 +1791,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -2058,7 +1867,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            twapDuration: 100,
             maxSlippage: 150
         });
 

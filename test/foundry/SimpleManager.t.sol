@@ -68,12 +68,16 @@ contract SimpleManagerTest is TestWrapper {
     int24 public upperTick;
     int24 public tickSpacing;
     uint24 public feeTier;
+    address[] public operators;
 
     constructor() {
         simpleManager = new SimpleManager(IUniswapV3Factory(uniFactory));
     }
 
     function setUp() public {
+        operators = new address[](1);
+        operators[0] = address(this);
+
         // #region create Vault
 
         feeTier = 500;
@@ -126,7 +130,6 @@ contract SimpleManagerTest is TestWrapper {
         SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
             vault: vault,
             oracle: oracle,
-            twapDuration: 100,
             maxDeviation: 100,
             maxSlippage: 100
         });
@@ -139,7 +142,6 @@ contract SimpleManagerTest is TestWrapper {
         SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
             vault: vault,
             oracle: oracle,
-            twapDuration: 100,
             maxDeviation: 0,
             maxSlippage: 100
         });
@@ -157,7 +159,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            twapDuration: 100,
             maxSlippage: 100
         });
         vm.prank(msg.sender);
@@ -171,7 +172,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            twapDuration: 100,
             maxSlippage: 100
         });
 
@@ -190,7 +190,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            twapDuration: 100,
             maxSlippage: 1001
         });
 
@@ -205,7 +204,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            twapDuration: 100,
             maxSlippage: 100
         });
 
@@ -216,14 +214,12 @@ contract SimpleManagerTest is TestWrapper {
         // #region asserts.
         (
             IOracleWrapper oracle_,
-            uint24 twapDuration,
             uint24 maxDeviation,
             uint24 maxSlippage
         ) = simpleManager.vaults(vault);
 
         assertEq(address(oracle_), address(oracle));
         assertEq(maxDeviation, params.maxDeviation);
-        assertEq(twapDuration, params.twapDuration);
         assertEq(maxSlippage, params.maxSlippage);
 
         // #endregion asserts.
@@ -234,7 +230,7 @@ contract SimpleManagerTest is TestWrapper {
     // #region test rebalance.
 
     // solhint-disable-next-line function-max-lines
-    function testSingleRangeNoSwapRebalanceNotCalledByOwner() public {
+    function testSingleRangeNoSwapRebalanceNotCalledByOperator() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
         // make vault to be managed by SimpleManager.
         _rebalanceSetup();
@@ -273,7 +269,7 @@ contract SimpleManagerTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes("NO"));
         vm.prank(msg.sender);
         simpleManager.rebalance(
             vault,
@@ -323,6 +319,7 @@ contract SimpleManagerTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -378,6 +375,7 @@ contract SimpleManagerTest is TestWrapper {
         ranges[1] = range1;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -426,7 +424,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -466,6 +464,7 @@ contract SimpleManagerTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
         simpleManager.rebalance(
@@ -516,7 +515,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -556,6 +555,7 @@ contract SimpleManagerTest is TestWrapper {
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
 
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -604,7 +604,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
             vault
         );
 
@@ -643,7 +643,7 @@ contract SimpleManagerTest is TestWrapper {
         Range[] memory ranges = new Range[](1);
         ranges[0] = range;
         Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         simpleManager.rebalance(
             vault,
             ranges,
@@ -659,7 +659,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 200,
-            twapDuration: 100,
             maxSlippage: 100
         });
 
@@ -757,7 +756,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: secondVault,
             oracle: oracle,
             maxDeviation: 200,
-            twapDuration: 100,
             maxSlippage: 100
         });
 
@@ -844,7 +842,6 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 200,
-            twapDuration: 100,
             maxSlippage: 100
         });
 
@@ -854,6 +851,137 @@ contract SimpleManagerTest is TestWrapper {
     }
 
     // #endregion test withdrawAndCollectFees.
+
+    // #region test add operators.
+
+    function testAddOperatorsCalledNotByOwnerShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(msg.sender);
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsEmptyArrayShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("ZO"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsAddAddressZeroShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        vm.expectRevert(bytes("O"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsAddAlreadyOperatorShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        vm.expectRevert(bytes("O"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperators() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        assertTrue(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test add operators.
+
+    // #region test remove operators.
+
+    function testRemoveOperatorsCalledNotByOwnerShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(msg.sender);
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperatorsEmptyArrayShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("ZO"));
+
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperatorsNoOperatorShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        operators[0] = address(this);
+
+        vm.expectRevert(bytes("NO"));
+
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperators() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+        assertTrue(simpleManager.isOperator(address(this)));
+
+        simpleManager.removeOperators(operators_);
+
+        assertFalse(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test remove operators.
+
+    // #region test get Operators.
+
+    function testGetOperators() public {
+        address[] memory operators_ = simpleManager.getOperators();
+
+        assertTrue(operators_.length == 0);
+
+        operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        address[] memory new0perators_ = simpleManager.getOperators();
+
+        assertTrue(new0perators_.length == 1);
+    }
+
+    // #endregion test get Operators.
+
+    // #region test is Operators.
+
+    function testIsOperator() public {
+        vm.expectRevert(bytes("AZ"));
+        simpleManager.isOperator(address(0));
+
+        assertFalse(simpleManager.isOperator(address(this)));
+
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+        assertTrue(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test is Operators.
 
     // #region internal functions.
 
