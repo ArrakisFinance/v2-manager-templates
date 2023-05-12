@@ -3,7 +3,9 @@ pragma solidity 0.8.13;
 
 import "../utils/TestWrapper.sol";
 import "forge-std/Vm.sol";
-import "contracts/SimpleManagerTWAP.sol";
+import {SimpleManager, IArrakisV2, FullMath} from "contracts/SimpleManager.sol";
+import {IOracleWrapper} from "contracts/interfaces/IOracleWrapper.sol";
+import {UniswapV3PoolOracle} from "contracts/oracles/UniswapV3PoolOracle.sol";
 import {
     IUniswapV3Factory
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
@@ -13,7 +15,19 @@ import {
 import {
     IUniswapV3Pool
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {
+    ProxyAdmin
+} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    ProxyAdmin
+} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {
     IArrakisV2Factory,
     InitializePayload
@@ -27,7 +41,7 @@ import {
     Range,
     SwapPayload
 } from "@arrakisfi/v2-core/contracts/structs/SArrakisV2.sol";
-import {Twap} from "contracts/libraries/Twap.sol";
+import {Twap, TickMath} from "contracts/libraries/Twap.sol";
 import {
     IArrakisV2Resolver
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2Resolver.sol";
@@ -46,10 +60,10 @@ import {
     swapRouter,
     vm
 } from "../constants/ContractsInstances.sol";
-import {hundred_percent} from "contracts/constants/CSimpleManagerTWAP.sol";
+import {hundred_percent} from "contracts/constants/CSimpleManager.sol";
 
 // solhint-disable-next-line max-states-count
-contract SimpleManagerTWAPTest is TestWrapper {
+contract SimpleManagerTest is TestWrapper {
     using stdStorage for StdStorage;
 
     uint256 public constant AMOUNT_OF_USDC = 100000e6;
@@ -57,23 +71,37 @@ contract SimpleManagerTWAPTest is TestWrapper {
 
     uint16 public constant MANAGER_FEE_BPS = 100;
 
-    SimpleManagerTWAP public simpleManagerTWAP;
+    SimpleManager public simpleManager;
     IUniswapV3Factory public uniswapV3Factory;
     IArrakisV2Resolver public resolver;
+    IOracleWrapper public oracle;
     address public vault;
     int24 public lowerTick;
     int24 public upperTick;
     int24 public tickSpacing;
     uint24 public feeTier;
+    address[] public operators;
 
     constructor() {
-        simpleManagerTWAP = new SimpleManagerTWAP(
-            IUniswapV3Factory(uniFactory),
-            MANAGER_FEE_BPS
+        SimpleManager impl = new SimpleManager(IUniswapV3Factory(uniFactory));
+
+        ProxyAdmin admin = new ProxyAdmin();
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(impl),
+            address(admin),
+            ""
         );
+
+        simpleManager = SimpleManager(address(proxy));
+
+        simpleManager.initialize(address(this));
     }
 
     function setUp() public {
+        operators = new address[](1);
+        operators[0] = address(this);
+
         // #region create Vault
 
         feeTier = 500;
@@ -94,9 +122,8 @@ contract SimpleManagerTWAPTest is TestWrapper {
                 owner: msg.sender,
                 init0: amount0,
                 init1: amount1,
-                manager: address(simpleManagerTWAP),
-                routers: routers,
-                burnBuffer: 1000
+                manager: address(simpleManager),
+                routers: routers
             }),
             true
         );
@@ -104,143 +131,118 @@ contract SimpleManagerTWAPTest is TestWrapper {
         // #endregion create Vault
 
         /* solhint-enable reentrancy */
+
+        IUniswapV3Pool pool = IUniswapV3Pool(
+            IUniswapV3Factory(uniFactory).getPool(
+                address(usdc),
+                address(weth),
+                feeTier
+            )
+        );
+
+        // #region create Oracle.
+
+        oracle = new UniswapV3PoolOracle(pool, 100);
+
+        // #endregion create Oracle.
     }
 
     // #region test initManagement.
 
     function testInitManagementCallerNotOwner() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 100
+        });
         vm.expectRevert(bytes("NO"));
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     function testInitManagementTwapDeviationZero() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 0,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 0,
+            maxSlippage: 100
+        });
         vm.prank(msg.sender);
         vm.expectRevert(bytes("DN"));
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
-    function testInitManagementNotManagedBySimpleManagerTWAP() public {
+    function testInitManagementNotManagedBySimpleManager() public {
         vm.prank(msg.sender);
         IArrakisV2SetManager(vault).setManager(msg.sender);
 
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 100
+        });
         vm.prank(msg.sender);
         vm.expectRevert(bytes("NM"));
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     function testInitManagementAlreadyAdded() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 100
+        });
 
         vm.prank(msg.sender);
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
 
         vm.prank(msg.sender);
         vm.expectRevert(bytes("AV"));
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     function testInitManagementSlippageTooHigh() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 1001
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 1001
+        });
 
         vm.prank(msg.sender);
         vm.expectRevert(bytes("MS"));
 
-        simpleManagerTWAP.initManagement(params);
-    }
-
-    function testInitManagementWrongFeeTier() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: 5,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
-
-        vm.prank(msg.sender);
-        vm.expectRevert(bytes("NP"));
-
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     function testInitManagement() public {
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: feeTier,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 100
+        });
 
         vm.prank(msg.sender);
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
 
         // #region asserts.
-
-        IArrakisV2 vaultV2 = IArrakisV2(vault);
-
-        address pool = uniswapV3Factory.getPool(
-            address(vaultV2.token0()),
-            address(vaultV2.token1()),
-            params.twapFeeTier
-        );
-
         (
-            IUniswapV3Pool twapOracle,
-            int24 twapDeviation,
-            uint24 twapDuration,
+            IOracleWrapper oracle_,
+            uint24 maxDeviation,
             uint24 maxSlippage
-        ) = simpleManagerTWAP.vaults(vault);
+        ) = simpleManager.vaults(vault);
 
-        assertEq(address(twapOracle), pool);
-        assertEq(twapDeviation, params.twapDeviation);
-        assertEq(twapDuration, params.twapDuration);
+        assertEq(address(oracle_), address(oracle));
+        assertEq(maxDeviation, params.maxDeviation);
         assertEq(maxSlippage, params.maxSlippage);
 
         // #endregion asserts.
@@ -250,9 +252,10 @@ contract SimpleManagerTWAPTest is TestWrapper {
 
     // #region test rebalance.
 
-    function testSingleRangeNoSwapRebalanceNotCalledByOwner() public {
+    // solhint-disable-next-line function-max-lines
+    function testSingleRangeNoSwapRebalanceNotCalledByOperator() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc and weth tokens.
@@ -285,24 +288,15 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes("NO"));
         vm.prank(msg.sender);
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
     function testSingleRangeNoSwapRebalance() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc and weth tokens.
@@ -335,22 +329,14 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.addOperators(operators);
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
     function testMultipleRangeNoSwapRebalance() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc and weth tokens.
@@ -389,23 +375,14 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.addOperators(operators);
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
     function testSingleRangeSwapRebalanceShouldRevertWithS0() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc tokens.
@@ -442,16 +419,13 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        (
-            IUniswapV3Pool twapOracle,
-            ,
-            uint24 twapDuration,
-            uint24 maxSlippage
-        ) = simpleManagerTWAP.vaults(vault);
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+            vault
+        );
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
-                Twap.getPrice0(twapOracle, twapDuration),
+                oracle_.getPrice0(),
                 hundred_percent - maxSlippage,
                 hundred_percent
             ),
@@ -479,26 +453,18 @@ contract SimpleManagerTWAPTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
+        simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
     function testSingleRangeSwapRebalance() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc tokens.
@@ -535,16 +501,13 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        (
-            IUniswapV3Pool twapOracle,
-            ,
-            uint24 twapDuration,
-            uint24 maxSlippage
-        ) = simpleManagerTWAP.vaults(vault);
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+            vault
+        );
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
-                Twap.getPrice0(twapOracle, twapDuration),
+                oracle_.getPrice0(),
                 hundred_percent - maxSlippage,
                 hundred_percent
             ),
@@ -572,24 +535,16 @@ contract SimpleManagerTWAPTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.addOperators(operators);
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
     function testSingleRangeSwapRebalanceWETH() public {
         IArrakisV2 vaultV2 = IArrakisV2(vault);
-        // make vault to be managed by SimpleManagerTwap.
+        // make vault to be managed by SimpleManager.
         _rebalanceSetup();
 
         // get some usdc tokens.
@@ -626,16 +581,13 @@ contract SimpleManagerTWAPTest is TestWrapper {
             vaultV2
         );
 
-        (
-            IUniswapV3Pool twapOracle,
-            ,
-            uint24 twapDuration,
-            uint24 maxSlippage
-        ) = simpleManagerTWAP.vaults(vault);
+        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+            vault
+        );
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
-                Twap.getPrice1(twapOracle, twapDuration),
+                oracle_.getPrice1(),
                 hundred_percent - maxSlippage,
                 hundred_percent
             ),
@@ -663,35 +615,25 @@ contract SimpleManagerTWAPTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
-        simpleManagerTWAP.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.addOperators(operators);
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     function _rebalanceSetup() internal {
         // do init management.
 
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: 500,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100
+        });
 
         vm.prank(msg.sender);
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     // #endregion test rebalance.
@@ -740,7 +682,11 @@ contract SimpleManagerTWAPTest is TestWrapper {
         IArrakisV2[] memory vaults = new IArrakisV2[](1);
         vaults[0] = vaultV2;
 
-        simpleManagerTWAP.withdrawAndCollectFees(vaults, address(this));
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = weth;
+
+        simpleManager.withdrawAndCollectFees(vaults, tokens, address(this));
 
         assertEq(
             usdcBalanceBefore + managerBalance0,
@@ -772,24 +718,21 @@ contract SimpleManagerTWAPTest is TestWrapper {
                 owner: msg.sender,
                 init0: amount0,
                 init1: amount1,
-                manager: address(simpleManagerTWAP),
-                routers: routers,
-                burnBuffer: 1000
+                manager: address(simpleManager),
+                routers: routers
             }),
             true
         );
 
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: secondVault,
-                twapFeeTier: 500,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: secondVault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100
+        });
 
         vm.prank(msg.sender);
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
 
         // #endregion create second vault.
 
@@ -852,7 +795,11 @@ contract SimpleManagerTWAPTest is TestWrapper {
         vaults[0] = vaultV2;
         vaults[1] = secondVaultV2;
 
-        simpleManagerTWAP.withdrawAndCollectFees(vaults, address(this));
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = weth;
+
+        simpleManager.withdrawAndCollectFees(vaults, tokens, address(this));
 
         assertEq(
             usdcBalanceBefore + (managerBalance0 * 2),
@@ -867,21 +814,150 @@ contract SimpleManagerTWAPTest is TestWrapper {
     function _withdrawAndCollectFeesSetup() internal {
         // do init management.
 
-        SimpleManagerTWAP.SetupParams memory params = SimpleManagerTWAP
-            .SetupParams({
-                vault: vault,
-                twapFeeTier: 500,
-                twapDeviation: 100,
-                twapDuration: 100,
-                maxSlippage: 100
-            });
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100
+        });
 
         vm.prank(msg.sender);
 
-        simpleManagerTWAP.initManagement(params);
+        simpleManager.initManagement(params);
     }
 
     // #endregion test withdrawAndCollectFees.
+
+    // #region test add operators.
+
+    function testAddOperatorsCalledNotByOwnerShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(msg.sender);
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsEmptyArrayShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("ZO"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsAddAddressZeroShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        vm.expectRevert(bytes("O"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperatorsAddAlreadyOperatorShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        vm.expectRevert(bytes("O"));
+
+        simpleManager.addOperators(operators_);
+    }
+
+    function testAddOperators() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        assertTrue(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test add operators.
+
+    // #region test remove operators.
+
+    function testRemoveOperatorsCalledNotByOwnerShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(msg.sender);
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperatorsEmptyArrayShouldFail() public {
+        address[] memory operators_ = new address[](0);
+
+        vm.expectRevert(bytes("ZO"));
+
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperatorsNoOperatorShouldFail() public {
+        address[] memory operators_ = new address[](1);
+
+        operators[0] = address(this);
+
+        vm.expectRevert(bytes("NO"));
+
+        simpleManager.removeOperators(operators_);
+    }
+
+    function testRemoveOperators() public {
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+        assertTrue(simpleManager.isOperator(address(this)));
+
+        simpleManager.removeOperators(operators_);
+
+        assertFalse(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test remove operators.
+
+    // #region test get Operators.
+
+    function testGetOperators() public {
+        address[] memory operators_ = simpleManager.getOperators();
+
+        assertTrue(operators_.length == 0);
+
+        operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+
+        address[] memory new0perators_ = simpleManager.getOperators();
+
+        assertTrue(new0perators_.length == 1);
+    }
+
+    // #endregion test get Operators.
+
+    // #region test is Operators.
+
+    function testIsOperator() public {
+        vm.expectRevert(bytes("AZ"));
+        simpleManager.isOperator(address(0));
+
+        assertFalse(simpleManager.isOperator(address(this)));
+
+        address[] memory operators_ = new address[](1);
+
+        operators_[0] = address(this);
+
+        simpleManager.addOperators(operators_);
+        assertTrue(simpleManager.isOperator(address(this)));
+    }
+
+    // #endregion test is Operators.
 
     // #region internal functions.
 

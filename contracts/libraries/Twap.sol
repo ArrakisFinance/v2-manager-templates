@@ -71,16 +71,4 @@ library Twap {
             priceX96 * priceX96
         );
     }
-
-    function checkDeviation(
-        IUniswapV3Pool pool_,
-        uint24 twapDuration_,
-        int24 maxTwapDeviation_
-    ) internal view {
-        (, int24 tick, , , , , ) = pool_.slot0();
-        int24 twap = getTwap(pool_, twapDuration_);
-
-        int24 deviation = tick > twap ? tick - twap : twap - tick;
-        require(deviation <= maxTwapDeviation_, "maxTwapDeviation");
-    }
 }
