@@ -23,6 +23,12 @@ import {
     TransparentUpgradeableProxy
 } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {
+    ProxyAdmin
+} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
     IArrakisV2Factory,
     InitializePayload
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2Factory.sol";
