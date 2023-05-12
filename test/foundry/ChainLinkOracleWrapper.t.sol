@@ -38,7 +38,7 @@ import {
     Range,
     SwapPayload
 } from "@arrakisfi/v2-core/contracts/structs/SArrakisV2.sol";
-import {Twap} from "contracts/libraries/Twap.sol";
+import {Twap, TickMath} from "contracts/libraries/Twap.sol";
 import {
     IArrakisV2Resolver
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2Resolver.sol";
@@ -147,17 +147,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -204,18 +195,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -294,21 +275,12 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -387,19 +359,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -478,19 +441,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -523,8 +477,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );
@@ -591,17 +544,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -648,18 +592,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -738,21 +672,12 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -831,19 +756,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -922,19 +838,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -967,8 +874,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );
@@ -1035,17 +941,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1092,18 +989,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1182,21 +1069,12 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1275,18 +1153,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1365,18 +1235,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1409,8 +1271,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );
@@ -1477,16 +1338,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1533,17 +1386,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1622,20 +1466,12 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1714,18 +1550,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1804,18 +1632,10 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1848,8 +1668,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );

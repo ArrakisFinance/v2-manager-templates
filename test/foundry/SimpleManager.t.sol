@@ -15,7 +15,7 @@ import {
 import {
     IUniswapV3Pool
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {
     ProxyAdmin
 } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
@@ -35,7 +35,7 @@ import {
     Range,
     SwapPayload
 } from "@arrakisfi/v2-core/contracts/structs/SArrakisV2.sol";
-import {Twap} from "contracts/libraries/Twap.sol";
+import {Twap, TickMath} from "contracts/libraries/Twap.sol";
 import {
     IArrakisV2Resolver
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2Resolver.sol";
@@ -117,8 +117,7 @@ contract SimpleManagerTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );
@@ -283,18 +282,9 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
         vm.expectRevert(bytes("NO"));
         vm.prank(msg.sender);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -333,17 +323,8 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -388,18 +369,8 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        Range[] memory ranges = new Range[](2);
-        ranges[0] = range0;
-        ranges[1] = range1;
-        Range[] memory rangesToRemove = new Range[](0);
-
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -476,21 +447,12 @@ contract SimpleManagerTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -567,19 +529,10 @@ contract SimpleManagerTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
-
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
+        rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -656,18 +609,10 @@ contract SimpleManagerTest is TestWrapper {
             )
         });
 
-        rebalancePayload.deposits[0].liquidity = 1000;
+        rebalancePayload.mints[0].liquidity = 1000;
 
-        Range[] memory ranges = new Range[](1);
-        ranges[0] = range;
-        Range[] memory rangesToRemove = new Range[](0);
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(
-            vault,
-            ranges,
-            rebalancePayload,
-            rangesToRemove
-        );
+        simpleManager.rebalance(vault, rebalancePayload);
     }
 
     function _rebalanceSetup() internal {
@@ -731,7 +676,11 @@ contract SimpleManagerTest is TestWrapper {
         IArrakisV2[] memory vaults = new IArrakisV2[](1);
         vaults[0] = vaultV2;
 
-        simpleManager.withdrawAndCollectFees(vaults, address(this));
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = weth;
+
+        simpleManager.withdrawAndCollectFees(vaults, tokens, address(this));
 
         assertEq(
             usdcBalanceBefore + managerBalance0,
@@ -764,8 +713,7 @@ contract SimpleManagerTest is TestWrapper {
                 init0: amount0,
                 init1: amount1,
                 manager: address(simpleManager),
-                routers: routers,
-                burnBuffer: 1000
+                routers: routers
             }),
             true
         );
@@ -841,7 +789,11 @@ contract SimpleManagerTest is TestWrapper {
         vaults[0] = vaultV2;
         vaults[1] = secondVaultV2;
 
-        simpleManager.withdrawAndCollectFees(vaults, address(this));
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = weth;
+
+        simpleManager.withdrawAndCollectFees(vaults, tokens, address(this));
 
         assertEq(
             usdcBalanceBefore + (managerBalance0 * 2),
