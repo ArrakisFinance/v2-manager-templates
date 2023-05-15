@@ -62,7 +62,7 @@ import {
 } from "../constants/ContractsInstances.sol";
 import {hundred_percent} from "contracts/constants/CSimpleManager.sol";
 
-// solhint-disable-next-line max-states-count
+// solhint-disable
 contract SimpleManagerTest is TestWrapper {
     using stdStorage for StdStorage;
 
@@ -156,7 +156,8 @@ contract SimpleManagerTest is TestWrapper {
             maxDeviation: 100,
             maxSlippage: 100
         });
-        vm.expectRevert(bytes("NO"));
+        vm.prank(msg.sender);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
 
         simpleManager.initManagement(params);
     }
@@ -168,7 +169,6 @@ contract SimpleManagerTest is TestWrapper {
             maxDeviation: 0,
             maxSlippage: 100
         });
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("DN"));
 
         simpleManager.initManagement(params);
@@ -184,7 +184,7 @@ contract SimpleManagerTest is TestWrapper {
             maxDeviation: 100,
             maxSlippage: 100
         });
-        vm.prank(msg.sender);
+        vm.prank(address(this));
         vm.expectRevert(bytes("NM"));
 
         simpleManager.initManagement(params);
@@ -198,11 +198,8 @@ contract SimpleManagerTest is TestWrapper {
             maxSlippage: 100
         });
 
-        vm.prank(msg.sender);
-
         simpleManager.initManagement(params);
 
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("AV"));
 
         simpleManager.initManagement(params);
@@ -216,7 +213,6 @@ contract SimpleManagerTest is TestWrapper {
             maxSlippage: 1001
         });
 
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("MS"));
 
         simpleManager.initManagement(params);
@@ -229,8 +225,6 @@ contract SimpleManagerTest is TestWrapper {
             maxDeviation: 100,
             maxSlippage: 100
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
 
@@ -631,8 +625,6 @@ contract SimpleManagerTest is TestWrapper {
             maxSlippage: 100
         });
 
-        vm.prank(msg.sender);
-
         simpleManager.initManagement(params);
     }
 
@@ -731,7 +723,6 @@ contract SimpleManagerTest is TestWrapper {
             maxSlippage: 100
         });
 
-        vm.prank(msg.sender);
         simpleManager.initManagement(params);
 
         // #endregion create second vault.
@@ -820,8 +811,6 @@ contract SimpleManagerTest is TestWrapper {
             maxDeviation: 200,
             maxSlippage: 100
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
     }

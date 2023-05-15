@@ -65,11 +65,6 @@ contract SimpleManager is OwnableUpgradeable {
     event AddOperators(address[] operators);
     event RemoveOperators(address[] operators);
 
-    modifier onlyVaultOwner(address vault) {
-        require(msg.sender == IOwnable(vault).owner(), "NO");
-        _;
-    }
-
     constructor(IUniswapV3Factory uniFactory_) {
         uniFactory = uniFactory_;
     }
@@ -81,9 +76,7 @@ contract SimpleManager is OwnableUpgradeable {
     /// @notice Initialize management
     /// @dev onced initialize Arrakis will start to manage the initialize vault
     /// @param params SetupParams struct containing data for manager vault
-    function initManagement(
-        SetupParams calldata params
-    ) external onlyVaultOwner(params.vault) {
+    function initManagement(SetupParams calldata params) external onlyOwner {
         require(params.maxDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(params.oracle) != address(0), "OZA");
@@ -226,6 +219,14 @@ contract SimpleManager is OwnableUpgradeable {
         }
 
         // #endregion transfer token to target.
+    }
+
+    function setManagerFee(
+        address vault_,
+        uint16 managerFeeBPS_
+    ) external onlyOwner {
+        /// @dev will revert unless this contract has also been tansferred vault ownership
+        IArrakisV2(vault_).setManagerFeeBPS(managerFeeBPS_);
     }
 
     /// @notice for adding operators

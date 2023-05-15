@@ -1707,8 +1707,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             maxSlippage: 150
         });
 
-        vm.prank(msg.sender);
-
         simpleManager.initManagement(params);
     }
 
