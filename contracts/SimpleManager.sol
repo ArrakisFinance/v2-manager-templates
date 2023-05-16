@@ -68,7 +68,6 @@ contract SimpleManager is OwnableUpgradeable {
     event AddOperators(address[] operators);
     event RemoveOperators(address[] operators);
     event SetManagerFeeBPS(address[] vaults, uint16 managerFeeBPS);
-    event SetManagerFeeBPS(address vault, uint16 managerFeeBPS);
 
     constructor(IUniswapV3Factory uniFactory_) {
         uniFactory = uniFactory_;
@@ -92,8 +91,9 @@ contract SimpleManager is OwnableUpgradeable {
 
         if (params.managerFeeBPS != IArrakisV2(params.vault).managerFeeBPS()) {
             IArrakisV2(params.vault).setManagerFeeBPS(params.managerFeeBPS);
-
-            emit SetManagerFeeBPS(params.vault, params.managerFeeBPS);
+            address[] memory vaultList = new address[](1);
+            vaultList[0] = params.vault;
+            emit SetManagerFeeBPS(vaultList, params.managerFeeBPS);
         }
 
         vaults[params.vault] = VaultInfo({
