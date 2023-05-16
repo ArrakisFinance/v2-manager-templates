@@ -241,7 +241,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -325,7 +325,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -407,7 +407,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -638,7 +638,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -722,7 +722,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -804,7 +804,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1035,7 +1035,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1119,7 +1119,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1201,7 +1201,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1432,7 +1432,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1516,7 +1516,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1598,7 +1598,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -1704,7 +1704,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 150
+            maxSlippage: 150,
+            managerFeeBPS: 100
         });
 
         simpleManager.initManagement(params);
