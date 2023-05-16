@@ -62,7 +62,7 @@ import {
 } from "../constants/ContractsInstances.sol";
 import {hundred_percent} from "contracts/constants/CSimpleManager.sol";
 
-// solhint-disable-next-line max-states-count
+// solhint-disable
 contract SimpleManagerTest is TestWrapper {
     using stdStorage for StdStorage;
 
@@ -154,9 +154,11 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-        vm.expectRevert(bytes("NO"));
+        vm.prank(msg.sender);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
 
         simpleManager.initManagement(params);
     }
@@ -166,9 +168,9 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 0,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("DN"));
 
         simpleManager.initManagement(params);
@@ -182,9 +184,10 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-        vm.prank(msg.sender);
+        vm.prank(address(this));
         vm.expectRevert(bytes("NM"));
 
         simpleManager.initManagement(params);
@@ -195,14 +198,12 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
 
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("AV"));
 
         simpleManager.initManagement(params);
@@ -213,11 +214,25 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 1001
+            maxSlippage: 1001,
+            managerFeeBPS: 100
         });
 
-        vm.prank(msg.sender);
         vm.expectRevert(bytes("MS"));
+
+        simpleManager.initManagement(params);
+    }
+
+    function testInitManagementNoManagerFeeBPS() public {
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 100,
+            maxSlippage: 100,
+            managerFeeBPS: 0
+        });
+
+        vm.expectRevert(bytes("MFB"));
 
         simpleManager.initManagement(params);
     }
@@ -227,10 +242,9 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 100,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 200
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
 
@@ -238,12 +252,14 @@ contract SimpleManagerTest is TestWrapper {
         (
             IOracleWrapper oracle_,
             uint24 maxDeviation,
-            uint24 maxSlippage
+            uint24 maxSlippage,
+            uint16 managerFeeBPS
         ) = simpleManager.vaults(vault);
 
         assertEq(address(oracle_), address(oracle));
         assertEq(maxDeviation, params.maxDeviation);
         assertEq(maxSlippage, params.maxSlippage);
+        assertEq(managerFeeBPS, params.managerFeeBPS);
 
         // #endregion asserts.
     }
@@ -419,7 +435,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -501,7 +517,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -581,7 +597,7 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage) = simpleManager.vaults(
+        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
             vault
         );
 
@@ -628,10 +644,9 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 200,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
     }
@@ -728,10 +743,10 @@ contract SimpleManagerTest is TestWrapper {
             vault: secondVault,
             oracle: oracle,
             maxDeviation: 200,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
 
-        vm.prank(msg.sender);
         simpleManager.initManagement(params);
 
         // #endregion create second vault.
@@ -818,10 +833,9 @@ contract SimpleManagerTest is TestWrapper {
             vault: vault,
             oracle: oracle,
             maxDeviation: 200,
-            maxSlippage: 100
+            maxSlippage: 100,
+            managerFeeBPS: 100
         });
-
-        vm.prank(msg.sender);
 
         simpleManager.initManagement(params);
     }
@@ -920,6 +934,90 @@ contract SimpleManagerTest is TestWrapper {
     }
 
     // #endregion test remove operators.
+
+    // #region test set manager fee bps.
+
+    function testSetManagerFeeBPSShouldFailNotManaged() public {
+        address[] memory vaults = new address[](1);
+
+        vaults[0] = address(vault);
+
+        vm.expectRevert(bytes("NM"));
+
+        simpleManager.setManagerFee(vaults, 100);
+    }
+
+    function testSetManagerFeeBPSShouldFailSameManagerFeeBPS() public {
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100,
+            managerFeeBPS: 100
+        });
+
+        simpleManager.initManagement(params);
+        address[] memory vaults = new address[](1);
+
+        vaults[0] = address(vault);
+
+        vm.expectRevert(bytes("NU"));
+
+        simpleManager.setManagerFee(vaults, 100);
+    }
+
+    function testSetManagerFeeBPS() public {
+        SimpleManager.SetupParams memory params = SimpleManager.SetupParams({
+            vault: vault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100,
+            managerFeeBPS: 100
+        });
+
+        simpleManager.initManagement(params);
+
+        (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity();
+
+        uint24[] memory feeTiers = new uint24[](1);
+        feeTiers[0] = feeTier;
+
+        address[] memory routers = new address[](1);
+        routers[0] = swapRouter;
+
+        address secondVault = IArrakisV2Factory(arrakisV2Factory).deployVault(
+            InitializePayload({
+                feeTiers: feeTiers,
+                token0: address(usdc),
+                token1: address(weth),
+                owner: msg.sender,
+                init0: amount0,
+                init1: amount1,
+                manager: address(simpleManager),
+                routers: routers
+            }),
+            true
+        );
+
+        params = SimpleManager.SetupParams({
+            vault: secondVault,
+            oracle: oracle,
+            maxDeviation: 200,
+            maxSlippage: 100,
+            managerFeeBPS: 100
+        });
+
+        simpleManager.initManagement(params);
+
+        address[] memory vaults = new address[](2);
+
+        vaults[0] = vault;
+        vaults[1] = secondVault;
+
+        simpleManager.setManagerFee(vaults, 200);
+    }
+
+    // #endregion test set manager fee bps.
 
     // #region test get Operators.
 

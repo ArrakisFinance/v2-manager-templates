@@ -40,6 +40,7 @@ contract SimpleManager is OwnableUpgradeable {
         IOracleWrapper oracle;
         uint24 maxDeviation;
         uint24 maxSlippage;
+        uint16 managerFeeBPS;
     }
 
     struct SetupParams {
@@ -47,6 +48,7 @@ contract SimpleManager is OwnableUpgradeable {
         IOracleWrapper oracle;
         uint24 maxDeviation;
         uint24 maxSlippage;
+        uint16 managerFeeBPS;
     }
 
     IUniswapV3Factory public immutable uniFactory;
@@ -59,16 +61,14 @@ contract SimpleManager is OwnableUpgradeable {
         address vault,
         address oracle,
         uint24 maxDeviation,
-        uint24 maxSlippage
+        uint24 maxSlippage,
+        uint16 managerFeeBPS
     );
     event RebalanceVault(address vault, address caller);
     event AddOperators(address[] operators);
     event RemoveOperators(address[] operators);
-
-    modifier onlyVaultOwner(address vault) {
-        require(msg.sender == IOwnable(vault).owner(), "NO");
-        _;
-    }
+    event SetManagerFeeBPS(address[] vaults, uint16 managerFeeBPS);
+    event SetManagerFeeBPS(address vault, uint16 managerFeeBPS);
 
     constructor(IUniswapV3Factory uniFactory_) {
         uniFactory = uniFactory_;
@@ -81,27 +81,34 @@ contract SimpleManager is OwnableUpgradeable {
     /// @notice Initialize management
     /// @dev onced initialize Arrakis will start to manage the initialize vault
     /// @param params SetupParams struct containing data for manager vault
-    function initManagement(
-        SetupParams calldata params
-    ) external onlyVaultOwner(params.vault) {
+    function initManagement(SetupParams calldata params) external onlyOwner {
         require(params.maxDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
         require(address(params.oracle) != address(0), "OZA");
         require(address(vaults[params.vault].oracle) == address(0), "AV");
+        require(params.managerFeeBPS > 0, "MFB");
         /// @dev 10% max slippage allowed by the manager.
         require(params.maxSlippage <= ten_percent, "MS");
+
+        if (params.managerFeeBPS != IArrakisV2(params.vault).managerFeeBPS()) {
+            IArrakisV2(params.vault).setManagerFeeBPS(params.managerFeeBPS);
+
+            emit SetManagerFeeBPS(params.vault, params.managerFeeBPS);
+        }
 
         vaults[params.vault] = VaultInfo({
             oracle: params.oracle,
             maxDeviation: params.maxDeviation,
-            maxSlippage: params.maxSlippage
+            maxSlippage: params.maxSlippage,
+            managerFeeBPS: params.managerFeeBPS
         });
 
         emit InitManagement(
             params.vault,
             address(params.oracle),
             params.maxDeviation,
-            params.maxSlippage
+            params.maxSlippage,
+            params.managerFeeBPS
         );
     }
 
@@ -226,6 +233,26 @@ contract SimpleManager is OwnableUpgradeable {
         }
 
         // #endregion transfer token to target.
+    }
+
+    /// @notice Set manager fee bps as manager
+    /// @dev only the owner of simple manager call this function
+    /// @param vaults_ array of vaults where to update manager fee bps
+    /// @param managerFeeBPS_ new value of manager fee bps
+    // solhint-disable-next-line code-complexity
+    function setManagerFee(
+        address[] calldata vaults_,
+        uint16 managerFeeBPS_
+    ) external onlyOwner {
+        for (uint256 i; i < vaults_.length; i++) {
+            require(address(vaults[vaults_[i]].oracle) != address(0), "NM");
+            require(vaults[vaults_[i]].managerFeeBPS != managerFeeBPS_, "NU");
+            vaults[vaults_[i]].managerFeeBPS = managerFeeBPS_;
+            /// @dev will revert unless this contract has also been tansferred vault ownership
+            IArrakisV2(vaults_[i]).setManagerFeeBPS(managerFeeBPS_);
+        }
+
+        emit SetManagerFeeBPS(vaults_, managerFeeBPS_);
     }
 
     /// @notice for adding operators
