@@ -14,6 +14,8 @@ contract UniswapV3PoolOracle is IOracleWrapper {
     // #endregion immutable variable.
 
     constructor(IUniswapV3Pool pool_, uint24 twapDuration_) {
+        require(address(pool_) != address(0), "ZA");
+        require(twapDuration_ <= 3600, "T");
         pool = pool_;
         twapDuration = twapDuration_;
     }

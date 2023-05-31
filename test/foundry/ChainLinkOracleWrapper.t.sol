@@ -496,6 +496,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             token0Decimals,
             token1Decimals,
             priceFeed,
+            address(0),
+            86400,
             false
         );
 
@@ -893,6 +895,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             token0Decimals,
             token1Decimals,
             priceFeed,
+            address(0),
+            86400,
             true
         );
 
@@ -1290,6 +1294,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             token0Decimals,
             token1Decimals,
             priceFeed,
+            address(0),
+            86400,
             true
         );
 
@@ -1687,6 +1693,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             token0Decimals,
             token1Decimals,
             priceFeed,
+            address(0),
+            86400,
             false
         );
 

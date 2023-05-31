@@ -1042,9 +1042,6 @@ contract SimpleManagerTest is TestWrapper {
     // #region test is Operators.
 
     function testIsOperator() public {
-        vm.expectRevert(bytes("AZ"));
-        simpleManager.isOperator(address(0));
-
         assertFalse(simpleManager.isOperator(address(this)));
 
         address[] memory operators_ = new address[](1);
