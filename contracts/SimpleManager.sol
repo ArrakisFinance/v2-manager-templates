@@ -5,7 +5,6 @@ import {
     IERC20,
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {
     OwnableUpgradeable
 } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -20,7 +19,6 @@ import {
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {
     IArrakisV2,
-    Range,
     Rebalance
 } from "@arrakisfi/v2-core/contracts/interfaces/IArrakisV2.sol";
 import {FullMath} from "@arrakisfi/v3-lib-0.8/contracts/FullMath.sol";
@@ -70,21 +68,31 @@ contract SimpleManager is OwnableUpgradeable {
     event SetManagerFeeBPS(address[] vaults, uint16 managerFeeBPS);
     event SetManagerFeeBPS(address vault, uint16 managerFeeBPS);
 
-    constructor(IUniswapV3Factory uniFactory_) {
+    modifier requireAddressNotZero(address addr) {
+        require(addr != address(0), "ZA");
+        _;
+    }
+
+    constructor(
+        IUniswapV3Factory uniFactory_
+    ) requireAddressNotZero(address(uniFactory_)) {
         uniFactory = uniFactory_;
     }
 
-    function initialize(address owner_) external initializer {
+    function initialize(
+        address owner_
+    ) external initializer requireAddressNotZero(owner_) {
         _transferOwnership(owner_);
     }
 
     /// @notice Initialize management
     /// @dev onced initialize Arrakis will start to manage the initialize vault
     /// @param params SetupParams struct containing data for manager vault
-    function initManagement(SetupParams calldata params) external onlyOwner {
+    function initManagement(
+        SetupParams calldata params
+    ) external onlyOwner requireAddressNotZero(address(params.oracle)) {
         require(params.maxDeviation > 0, "DN");
         require(address(this) == IArrakisV2(params.vault).manager(), "NM");
-        require(address(params.oracle) != address(0), "OZA");
         require(address(vaults[params.vault].oracle) == address(0), "AV");
         require(params.managerFeeBPS > 0, "MFB");
         /// @dev 10% max slippage allowed by the manager.
@@ -112,6 +120,16 @@ contract SimpleManager is OwnableUpgradeable {
         );
     }
 
+    /// @notice Terminate vault management
+    /// @dev only the owner of the contract Arrakis Finance can call the contract
+    /// @param vault_ vault that we should terminate management
+    function terminateManagement(
+        address vault_
+    ) external onlyOwner requireAddressNotZero(vault_) {
+        require(address(vaults[vault_].oracle) != address(0), "NM");
+        delete vaults[vault_];
+    }
+
     /// @notice Rebalance vault
     /// @dev only an operator of the contract Arrakis Finance can call the contract
     /// @param vault_ address of the Arrakis V2 vault to rebalance
@@ -122,6 +140,11 @@ contract SimpleManager is OwnableUpgradeable {
         Rebalance calldata rebalanceParams_
     ) external {
         require(_operators.contains(msg.sender), "NO");
+        require(
+            IArrakisV2(vault_).manager() == address(this) &&
+                address(vaults[vault_].oracle) != address(0),
+            "NM"
+        );
         VaultInfo memory vaultInfo = vaults[vault_];
 
         address token0;
@@ -132,22 +155,21 @@ contract SimpleManager is OwnableUpgradeable {
         uint256 oraclePrice;
         uint256 increment;
 
-        if (
-            rebalanceParams_.mints.length > 0 ||
-            rebalanceParams_.swap.amountIn > 0
-        ) {
+        uint256 mintsLength = rebalanceParams_.mints.length;
+
+        if (mintsLength > 0 || rebalanceParams_.swap.amountIn > 0) {
             token0 = address(IArrakisV2(vault_).token0());
             token1 = address(IArrakisV2(vault_).token1());
             token0Decimals = IDecimals(token0).decimals();
             token1Decimals = IDecimals(token1).decimals();
         }
 
-        if (rebalanceParams_.mints.length > 0) {
-            checked = new uint24[](rebalanceParams_.mints.length);
+        if (mintsLength > 0) {
+            checked = new uint24[](mintsLength);
             oraclePrice = vaultInfo.oracle.getPrice0();
         }
 
-        for (uint256 i; i < rebalanceParams_.mints.length; i++) {
+        for (uint256 i; i < mintsLength; ++i) {
             if (
                 _includes(
                     rebalanceParams_.mints[i].range.feeTier,
@@ -211,14 +233,17 @@ contract SimpleManager is OwnableUpgradeable {
         IArrakisV2[] calldata vaults_,
         IERC20[] calldata tokens_,
         address target
-    ) external onlyOwner {
-        require(vaults_.length > 0, "ZV");
-        require(target != address(0), "TZA");
+    ) external onlyOwner requireAddressNotZero(target) {
+        uint256 vaultsLength = vaults_.length;
 
         // #region withdraw from vaults.
 
-        for (uint256 i; i < vaults_.length; i++) {
-            require(vaults_[i].manager() == address(this), "NM");
+        for (uint256 i; i < vaultsLength; ++i) {
+            require(
+                vaults_[i].manager() == address(this) &&
+                    address(vaults[address(vaults_[i])].oracle) != address(0),
+                "NM"
+            );
 
             vaults_[i].withdrawManagerBalance();
         }
@@ -227,7 +252,8 @@ contract SimpleManager is OwnableUpgradeable {
 
         // #region transfer token to target.
 
-        for (uint256 i; i < tokens_.length; i++) {
+        uint256 tokensLength = tokens_.length;
+        for (uint256 i; i < tokensLength; ++i) {
             uint256 balance = IERC20(tokens_[i]).balanceOf(address(this));
             if (balance > 0) IERC20(tokens_[i]).safeTransfer(target, balance);
         }
@@ -244,7 +270,8 @@ contract SimpleManager is OwnableUpgradeable {
         address[] calldata vaults_,
         uint16 managerFeeBPS_
     ) external onlyOwner {
-        for (uint256 i; i < vaults_.length; i++) {
+        uint256 vaultsLength = vaults_.length;
+        for (uint256 i; i < vaultsLength; ++i) {
             require(address(vaults[vaults_[i]].oracle) != address(0), "NM");
             require(vaults[vaults_[i]].managerFeeBPS != managerFeeBPS_, "NU");
             vaults[vaults_[i]].managerFeeBPS = managerFeeBPS_;
@@ -259,8 +286,9 @@ contract SimpleManager is OwnableUpgradeable {
     /// @param operators_ list of operators to add
     /// @dev only callable by owner
     function addOperators(address[] calldata operators_) external onlyOwner {
-        require(operators_.length > 0, "ZO");
-        for (uint256 i; i < operators_.length; ++i) {
+        uint256 operatorsLength = operators_.length;
+        require(operatorsLength > 0, "ZO");
+        for (uint256 i; i < operatorsLength; ++i) {
             require(
                 operators_[i] != address(0) && _operators.add(operators_[i]),
                 "O"
@@ -274,8 +302,9 @@ contract SimpleManager is OwnableUpgradeable {
     /// @param operators_ list of operators to remove
     /// @dev only callable by owner
     function removeOperators(address[] memory operators_) external onlyOwner {
-        require(operators_.length > 0, "ZO");
-        for (uint256 i; i < operators_.length; ++i) {
+        uint256 operatorsLength = operators_.length;
+        require(operatorsLength > 0, "ZO");
+        for (uint256 i; i < operatorsLength; ++i) {
             require(_operators.remove(operators_[i]), "NO");
         }
 
@@ -293,7 +322,6 @@ contract SimpleManager is OwnableUpgradeable {
     /// @return return true if inputed address is an operator
     /// otherwise return false
     function isOperator(address operator_) external view returns (bool) {
-        require(operator_ != address(0), "AZ");
         return _operators.contains(operator_);
     }
 
@@ -371,22 +399,6 @@ contract SimpleManager is OwnableUpgradeable {
         uint24[] memory set,
         uint256 upperIndex
     ) internal pure returns (bool) {
-        require(set.length >= upperIndex, "OOR");
-        for (uint256 j; j < upperIndex; j++) {
-            if (set[j] == target) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    function _includesAddress(
-        address target,
-        address[] memory set,
-        uint256 upperIndex
-    ) internal pure returns (bool) {
-        require(set.length >= upperIndex, "OOR");
         for (uint256 j; j < upperIndex; j++) {
             if (set[j] == target) {
                 return true;

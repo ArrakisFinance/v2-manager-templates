@@ -50,11 +50,19 @@ library Twap {
 
         uint256 priceX96 = getSqrtTwapX96(pool_, twapDuration_);
 
-        price0 = FullMath.mulDiv(
-            priceX96 * priceX96,
-            10 ** token0.decimals(),
-            2 ** 192
-        );
+        if (priceX96 <= type(uint128).max) {
+            price0 = FullMath.mulDiv(
+                priceX96 * priceX96,
+                10 ** token0.decimals(),
+                2 ** 192
+            );
+        } else {
+            price0 = FullMath.mulDiv(
+                FullMath.mulDiv(priceX96, priceX96, 1 << 64),
+                10 ** token0.decimals(),
+                1 << 128
+            );
+        }
     }
 
     function getPrice1(
@@ -65,10 +73,18 @@ library Twap {
 
         uint256 priceX96 = getSqrtTwapX96(pool_, twapDuration_);
 
-        price1 = FullMath.mulDiv(
-            2 ** 192,
-            10 ** token1.decimals(),
-            priceX96 * priceX96
-        );
+        if (priceX96 <= type(uint128).max) {
+            price1 = FullMath.mulDiv(
+                2 ** 192,
+                10 ** token1.decimals(),
+                priceX96 * priceX96
+            );
+        } else {
+            price1 = FullMath.mulDiv(
+                1 << 128,
+                10 ** token1.decimals(),
+                FullMath.mulDiv(priceX96, priceX96, 1 << 64)
+            );
+        }
     }
 }
