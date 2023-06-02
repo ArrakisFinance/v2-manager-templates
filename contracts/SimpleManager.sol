@@ -120,16 +120,6 @@ contract SimpleManager is OwnableUpgradeable {
         );
     }
 
-    /// @notice Terminate vault management
-    /// @dev only the owner of the contract Arrakis Finance can call the contract
-    /// @param vault_ vault that we should terminate management
-    function terminateManagement(
-        address vault_
-    ) external onlyOwner requireAddressNotZero(vault_) {
-        require(address(vaults[vault_].oracle) != address(0), "NM");
-        delete vaults[vault_];
-    }
-
     /// @notice Rebalance vault
     /// @dev only an operator of the contract Arrakis Finance can call the contract
     /// @param vault_ address of the Arrakis V2 vault to rebalance
