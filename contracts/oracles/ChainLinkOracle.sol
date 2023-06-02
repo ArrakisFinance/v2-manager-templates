@@ -3,11 +3,12 @@ pragma solidity 0.8.13;
 
 import {IOracleWrapper} from "../interfaces/IOracleWrapper.sol";
 import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {FullMath} from "@arrakisfi/v3-lib-0.8/contracts/FullMath.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @title ChainLink Oracle wrapper
-contract ChainLinkOracle is IOracleWrapper {
+contract ChainLinkOracle is IOracleWrapper, Ownable {
     // #region constant variable.
 
     // solhint-disable-next-line private-vars-leading-underscore
@@ -21,10 +22,21 @@ contract ChainLinkOracle is IOracleWrapper {
     uint8 public immutable token1Decimals;
     AggregatorV3Interface public immutable priceFeed;
     AggregatorV3Interface public immutable sequencerUptimeFeed;
-    uint256 public immutable outdated;
     bool internal immutable _isPriceFeedInversed;
 
     // #endregion immutable variable.
+
+    uint256 public outdated;
+
+    // #region events.
+
+    event LogSetOutdated(
+        address oracle,
+        uint256 oldOutdated,
+        uint256 newOutdated
+    );
+
+    // #endregion events.
 
     constructor(
         uint8 token0Decimals_,
@@ -41,6 +53,14 @@ contract ChainLinkOracle is IOracleWrapper {
         sequencerUptimeFeed = AggregatorV3Interface(sequencerUptimeFeed_);
         outdated = outdated_;
         _isPriceFeedInversed = isPriceFeedInversed_;
+    }
+
+    /// @notice set outdated value
+    /// @param outdated_ new outdated value
+    function setOutdated(uint256 outdated_) external onlyOwner {
+        uint256 oldOutdated = outdated;
+        outdated = outdated_;
+        emit LogSetOutdated(address(this), oldOutdated, outdated_);
     }
 
     /// @notice get Price of token 1 over token 0
