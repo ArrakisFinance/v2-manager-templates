@@ -312,5 +312,4 @@ contract ChainLinkOraclePivotWrapperTest is TestWrapper {
     }
 
     // #endregion 3rd case.
-
 }

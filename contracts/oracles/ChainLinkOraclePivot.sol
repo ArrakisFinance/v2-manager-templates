@@ -225,7 +225,6 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
         // #endregion 4th case.
     }
 
-
     // solhint-disable-next-line function-max-lines
     function _getLatestRoundData()
         internal
