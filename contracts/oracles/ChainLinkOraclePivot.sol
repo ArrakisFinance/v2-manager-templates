@@ -274,12 +274,27 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
         priceFeedBDecimals = priceFeedB.decimals();
     }
 
+    /// @dev only needed for optimistic L2 chain
+    function _checkSequencer() internal view {
+        (, int256 answer, uint256 startedAt, , ) = sequencerUptimeFeed
+            .latestRoundData();
+
+        require(answer == 0, "ChainLinkOracle: sequencer down");
+
+        // Make sure the grace period has passed after the
+        // sequencer is back up.
+        require(
+            block.timestamp - startedAt > GRACE_PERIOD_TIME, // solhint-disable-line not-rely-on-time, max-line-length
+            "ChainLinkOracle: grace period not over"
+        );
+    }
+
     function _getPrice(
         bool isPriceFeedInversed_,
         uint8 priceFeedDecimals_,
         uint8 tokenDecimals_,
         int256 price_
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         if (!isPriceFeedInversed_) {
             return
                 FullMath.mulDiv(
@@ -298,20 +313,5 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
                 10 ** tokenDecimals_,
                 10 ** priceFeedDecimals_
             );
-    }
-
-    /// @dev only needed for optimistic L2 chain
-    function _checkSequencer() internal view {
-        (, int256 answer, uint256 startedAt, , ) = sequencerUptimeFeed
-            .latestRoundData();
-
-        require(answer == 0, "ChainLinkOracle: sequencer down");
-
-        // Make sure the grace period has passed after the
-        // sequencer is back up.
-        require(
-            block.timestamp - startedAt > GRACE_PERIOD_TIME, // solhint-disable-line not-rely-on-time, max-line-length
-            "ChainLinkOracle: grace period not over"
-        );
     }
 }
