@@ -265,7 +265,7 @@ contract SimpleManager is OwnableUpgradeable {
             require(address(vaults[vaults_[i]].oracle) != address(0), "NM");
             require(vaults[vaults_[i]].managerFeeBPS != managerFeeBPS_, "NU");
             vaults[vaults_[i]].managerFeeBPS = managerFeeBPS_;
-            /// @dev will revert unless this contract has also been tansferred vault ownership
+
             IArrakisV2(vaults_[i]).setManagerFeeBPS(managerFeeBPS_);
         }
 
