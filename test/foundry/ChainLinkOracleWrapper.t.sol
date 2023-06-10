@@ -101,7 +101,6 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.initialize(address(this));
     }
 
-    // solhint-disable-next-line no-empty-blocks
     function setUp() public {
         operators = new address[](1);
         operators[0] = address(this);
