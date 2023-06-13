@@ -65,6 +65,15 @@ import {
 } from "../constants/ContractsInstances.sol";
 import {hundred_percent} from "contracts/constants/CSimpleManager.sol";
 
+contract PriceFeedMock {
+    function latestRoundData()
+        external
+        returns (uint80, int256 price, uint256, uint256 updatedAt, uint80)
+    {
+        revert("revert");
+    }
+}
+
 // solhint-disable-next-line max-states-count
 contract ChainLinkOracleWrapperTest is TestWrapper {
     using stdStorage for StdStorage;
@@ -105,6 +114,176 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         operators = new address[](1);
         operators[0] = address(this);
     }
+
+    // #region test getPrice0 wrong price feed.
+
+    function testGetPrice0ShouldRevertWithWrongPriceFeed() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = address(new PriceFeedMock());
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        vm.expectRevert(bytes("ChainLinkOracle: price feed call failed."));
+        o.getPrice0();
+    }
+
+    // #endregion test getPrice0.
+
+    // #region test getPrice1 wrong price feed.
+
+    function testGetPrice1ShouldRevertWithWrongPriceFeed() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = address(new PriceFeedMock());
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        vm.expectRevert(bytes("ChainLinkOracle: price feed call failed."));
+        o.getPrice1();
+    }
+
+    // #endregion test getPrice1.
+
+    // #region test set outdated.
+
+    function testSetOutDatedShouldRevertOnlyOwner() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = 0xefb7e6be8356cCc6827799B6A7348eE674A80EaE;
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        vm.prank(msg.sender);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        o.setOutdated(100_000);
+    }
+
+    function testSetOutDated() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = 0xefb7e6be8356cCc6827799B6A7348eE674A80EaE;
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        assertEq(o.outdated(), 86400);
+
+        o.setOutdated(100_000);
+
+        assertEq(o.outdated(), 100000);
+    }
+
+    // #endregion test set outdated.
+
+    // #region test outdated.
+
+    function testGetPrice0WithOutdatedData() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = 0xefb7e6be8356cCc6827799B6A7348eE674A80EaE;
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        // solhint-disable-next-line not-rely-on-time
+        vm.warp(block.timestamp + 100_000);
+
+        vm.expectRevert(bytes("ChainLinkOracle: outdated."));
+        o.getPrice0();
+    }
+
+    function testGetPrice1WithOutdatedData() public {
+        /* solhint-enable reentrancy */
+
+        uint8 token0Decimals = ERC20(address(usdc)).decimals();
+        uint8 token1Decimals = ERC20(address(weth)).decimals();
+        address priceFeed = 0xefb7e6be8356cCc6827799B6A7348eE674A80EaE;
+
+        // #region create Oracle.
+
+        ChainLinkOracle o = new ChainLinkOracle(
+            token0Decimals,
+            token1Decimals,
+            priceFeed,
+            address(0),
+            86400,
+            false
+        );
+
+        // #endregion create Oracle.
+
+        // solhint-disable-next-line not-rely-on-time
+        vm.warp(block.timestamp + 100_000);
+
+        vm.expectRevert(bytes("ChainLinkOracle: outdated."));
+        o.getPrice1();
+    }
+
+    // #endregion test outdated.
 
     // #region test rebalance USDC / WETH.
 
