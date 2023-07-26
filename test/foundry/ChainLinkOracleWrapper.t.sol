@@ -240,9 +240,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -324,9 +323,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -406,9 +404,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -639,9 +636,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -723,9 +719,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -805,9 +800,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1038,9 +1032,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1122,9 +1115,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1204,9 +1196,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1241,6 +1232,9 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
+
+        // solhint-disable-next-line max-line-length
+        vm.expectRevert(); /// @dev expect revert due to bigger impact of the swap on the pool we are minting.
         simpleManager.rebalance(vault, rebalancePayload);
     }
 
@@ -1437,9 +1431,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1521,9 +1514,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1603,9 +1595,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -1712,7 +1703,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 150,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
