@@ -147,7 +147,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -195,7 +195,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -278,7 +278,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -359,7 +359,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -440,7 +440,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -543,7 +543,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -591,7 +591,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -674,7 +674,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -755,7 +755,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -836,7 +836,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -939,7 +939,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -987,7 +987,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1070,7 +1070,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1151,7 +1151,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1235,7 +1235,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
 
         // solhint-disable-next-line max-line-length
         vm.expectRevert(); /// @dev expect revert due to bigger impact of the swap on the pool we are minting.
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1338,7 +1338,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1386,7 +1386,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1469,7 +1469,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1550,7 +1550,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -1631,7 +1631,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines

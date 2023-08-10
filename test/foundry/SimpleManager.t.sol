@@ -317,7 +317,7 @@ contract SimpleManagerTest is TestWrapper {
 
         vm.expectRevert(bytes("NO"));
         vm.prank(msg.sender);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -357,7 +357,7 @@ contract SimpleManagerTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -403,7 +403,7 @@ contract SimpleManagerTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -484,7 +484,7 @@ contract SimpleManagerTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -563,7 +563,7 @@ contract SimpleManagerTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -642,7 +642,7 @@ contract SimpleManagerTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     function _rebalanceSetup() internal {
