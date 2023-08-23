@@ -154,11 +154,8 @@ contract SimpleManager is OwnableUpgradeable {
         );
         require(vaultInfo.maxDeviation >= operatorMaxDeviation_, "OMD");
 
-        {
-            VaultInfo storage vaultInfoS = vaults[vault_];
-            // solhint-disable-next-line not-rely-on-time
-            vaultInfoS.lastRebalanceTimestamp = block.timestamp;
-        }
+        // solhint-disable-next-line not-rely-on-time
+        vaults[vault_].lastRebalanceTimestamp = block.timestamp;
 
         address token0;
         address token1;
@@ -357,7 +354,7 @@ contract SimpleManager is OwnableUpgradeable {
                 poolPrice = FullMath.mulDiv(
                     sqrtPriceX96 * sqrtPriceX96,
                     10 ** token0Decimals_,
-                    2 ** 192
+                    1 << 192
                 );
             } else {
                 poolPrice = FullMath.mulDiv(
