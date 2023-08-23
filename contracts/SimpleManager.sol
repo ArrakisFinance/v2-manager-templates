@@ -132,10 +132,12 @@ contract SimpleManager is OwnableUpgradeable {
     /// @notice Rebalance vault
     /// @dev only an operator of the contract Arrakis Finance can call the contract
     /// @param vault_ address of the Arrakis V2 vault to rebalance
+    /// @param operatorMaxDeviation_ specific max deviation wanted by operator.
     /// @param rebalanceParams_ rebalance parameters.
     // solhint-disable-next-line function-max-lines, code-complexity
     function rebalance(
         address vault_,
+        uint24 operatorMaxDeviation_,
         Rebalance calldata rebalanceParams_
     ) external {
         require(_operators.contains(msg.sender), "NO");
@@ -150,6 +152,7 @@ contract SimpleManager is OwnableUpgradeable {
                 block.timestamp, // solhint-disable-line not-rely-on-time
             "CP"
         );
+        require(vaultInfo.maxDeviation >= operatorMaxDeviation_, "OMD");
 
         {
             VaultInfo storage vaultInfoS = vaults[vault_];
@@ -178,7 +181,8 @@ contract SimpleManager is OwnableUpgradeable {
             token0,
             token1,
             token0Decimals,
-            token1Decimals
+            token1Decimals,
+            operatorMaxDeviation_
         );
 
         // check expectedMinReturn on rebalance swap against oracle
@@ -201,7 +205,8 @@ contract SimpleManager is OwnableUpgradeable {
             token0,
             token1,
             token0Decimals,
-            token1Decimals
+            token1Decimals,
+            operatorMaxDeviation_
         );
 
         emit RebalanceVault(vault_, msg.sender);
@@ -317,7 +322,8 @@ contract SimpleManager is OwnableUpgradeable {
         address token0_,
         address token1_,
         uint8 token0Decimals_,
-        uint8 token1Decimals_
+        uint8 token1Decimals_,
+        uint24 operatorMaxDeviation_
     ) internal view {
         if (mintsLength_ == 0) return;
 
@@ -364,7 +370,7 @@ contract SimpleManager is OwnableUpgradeable {
             _checkDeviation(
                 poolPrice,
                 oraclePrice,
-                vaultInfo_.maxDeviation,
+                operatorMaxDeviation_,
                 token1Decimals_
             );
 
