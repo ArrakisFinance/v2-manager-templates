@@ -28,11 +28,18 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
 
     // #endregion immutable variable.
 
-    uint256 public outdated;
+    uint256 public outdatedA;
+    uint256 public outdatedB;
 
     // #region events.
 
-    event LogSetOutdated(
+    event LogSetOutdatedA(
+        address oracle,
+        uint256 oldOutdated,
+        uint256 newOutdated
+    );
+
+    event LogSetOutdatedB(
         address oracle,
         uint256 oldOutdated,
         uint256 newOutdated
@@ -46,7 +53,8 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
         address priceFeedA_,
         address priceFeedB_,
         address sequencerUptimeFeed_,
-        uint256 outdated_,
+        uint256 outdatedA_,
+        uint256 outdatedB_,
         bool ispriceFeedAInversed_,
         bool ispriceFeedBInversed_
     ) {
@@ -56,17 +64,26 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
         priceFeedA = AggregatorV3Interface(priceFeedA_);
         priceFeedB = AggregatorV3Interface(priceFeedB_);
         sequencerUptimeFeed = AggregatorV3Interface(sequencerUptimeFeed_);
-        outdated = outdated_;
+        outdatedA = outdatedA_;
+        outdatedB = outdatedB_;
         _ispriceFeedAInversed = ispriceFeedAInversed_;
         _ispriceFeedBInversed = ispriceFeedBInversed_;
     }
 
-    /// @notice set outdated value
-    /// @param outdated_ new outdated value
-    function setOutdated(uint256 outdated_) external onlyOwner {
-        uint256 oldOutdated = outdated;
-        outdated = outdated_;
-        emit LogSetOutdated(address(this), oldOutdated, outdated_);
+    /// @notice set outdated value for Token A
+    /// @param outdatedA_ new outdated value
+    function setOutdatedA(uint256 outdatedA_) external onlyOwner {
+        uint256 oldOutdatedA = outdatedA;
+        outdatedA = outdatedA_;
+        emit LogSetOutdatedA(address(this), oldOutdatedA, outdatedA_);
+    }
+
+    /// @notice set outdated value for Token B
+    /// @param outdatedB_ new outdated value
+    function setOutdatedB(uint256 outdatedB_) external onlyOwner {
+        uint256 oldOutdatedB = outdatedB;
+        outdatedB = outdatedB_;
+        emit LogSetOutdatedB(address(this), oldOutdatedB, outdatedB_);
     }
 
     /// @notice get Price of token 1 over token 0
@@ -244,7 +261,7 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
             uint80
         ) {
             require(
-                block.timestamp - updatedAt <= outdated, // solhint-disable-line not-rely-on-time
+                block.timestamp - updatedAt <= outdatedA, // solhint-disable-line not-rely-on-time
                 "ChainLinkOracle: priceFeedA outdated."
             );
 
@@ -261,7 +278,7 @@ contract ChainLinkOraclePivot is IOracleWrapper, Ownable {
             uint80
         ) {
             require(
-                block.timestamp - updatedAt <= outdated, // solhint-disable-line not-rely-on-time
+                block.timestamp - updatedAt <= outdatedB, // solhint-disable-line not-rely-on-time
                 "ChainLinkOracle: priceFeedB outdated."
             );
 

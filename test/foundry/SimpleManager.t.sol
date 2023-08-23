@@ -155,7 +155,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
         vm.prank(msg.sender);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
@@ -169,7 +170,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 0,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
         vm.expectRevert(bytes("DN"));
 
@@ -185,7 +187,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
         vm.prank(address(this));
         vm.expectRevert(bytes("NM"));
@@ -199,7 +202,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -215,7 +219,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 1001,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         vm.expectRevert(bytes("MS"));
@@ -229,7 +234,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 100,
-            managerFeeBPS: 0
+            managerFeeBPS: 0,
+            coolDownPeriod: 1
         });
 
         vm.expectRevert(bytes("MFB"));
@@ -243,7 +249,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 100,
             maxSlippage: 100,
-            managerFeeBPS: 200
+            managerFeeBPS: 200,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -253,13 +260,17 @@ contract SimpleManagerTest is TestWrapper {
             IOracleWrapper oracle_,
             uint24 maxDeviation,
             uint24 maxSlippage,
-            uint16 managerFeeBPS
+            uint16 managerFeeBPS,
+            uint256 coolDownPeriod,
+            uint256 lastRebalanceTimestamp
         ) = simpleManager.vaults(vault);
 
         assertEq(address(oracle_), address(oracle));
         assertEq(maxDeviation, params.maxDeviation);
         assertEq(maxSlippage, params.maxSlippage);
         assertEq(managerFeeBPS, params.managerFeeBPS);
+        assertEq(coolDownPeriod, params.coolDownPeriod);
+        assertEq(lastRebalanceTimestamp, 0);
 
         // #endregion asserts.
     }
@@ -306,7 +317,7 @@ contract SimpleManagerTest is TestWrapper {
 
         vm.expectRevert(bytes("NO"));
         vm.prank(msg.sender);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -346,7 +357,7 @@ contract SimpleManagerTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -392,7 +403,7 @@ contract SimpleManagerTest is TestWrapper {
         );
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -435,9 +446,8 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -474,7 +484,7 @@ contract SimpleManagerTest is TestWrapper {
         simpleManager.addOperators(operators);
         vm.expectRevert(bytes("S0"));
 
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -517,9 +527,8 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = FullMath.mulDiv(
             FullMath.mulDiv(
@@ -554,7 +563,7 @@ contract SimpleManagerTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     // solhint-disable-next-line function-max-lines
@@ -597,9 +606,8 @@ contract SimpleManagerTest is TestWrapper {
             vaultV2
         );
 
-        (IOracleWrapper oracle_, , uint24 maxSlippage, ) = simpleManager.vaults(
-            vault
-        );
+        (IOracleWrapper oracle_, , uint24 maxSlippage, , , ) = simpleManager
+            .vaults(vault);
 
         uint256 expectedMinReturn = (FullMath.mulDiv(
             FullMath.mulDiv(
@@ -634,7 +642,7 @@ contract SimpleManagerTest is TestWrapper {
         rebalancePayload.mints[0].liquidity = 1000;
 
         simpleManager.addOperators(operators);
-        simpleManager.rebalance(vault, rebalancePayload);
+        simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
     function _rebalanceSetup() internal {
@@ -645,7 +653,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -744,7 +753,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -834,7 +844,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -953,7 +964,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -972,7 +984,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);
@@ -1004,7 +1017,8 @@ contract SimpleManagerTest is TestWrapper {
             oracle: oracle,
             maxDeviation: 200,
             maxSlippage: 100,
-            managerFeeBPS: 100
+            managerFeeBPS: 100,
+            coolDownPeriod: 1
         });
 
         simpleManager.initManagement(params);

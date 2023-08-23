@@ -39,6 +39,8 @@ contract SimpleManager is OwnableUpgradeable {
         uint24 maxDeviation;
         uint24 maxSlippage;
         uint16 managerFeeBPS;
+        uint256 coolDownPeriod;
+        uint256 lastRebalanceTimestamp;
     }
 
     struct SetupParams {
@@ -47,6 +49,7 @@ contract SimpleManager is OwnableUpgradeable {
         uint24 maxDeviation;
         uint24 maxSlippage;
         uint16 managerFeeBPS;
+        uint256 coolDownPeriod;
     }
 
     IUniswapV3Factory public immutable uniFactory;
@@ -60,7 +63,8 @@ contract SimpleManager is OwnableUpgradeable {
         address oracle,
         uint24 maxDeviation,
         uint24 maxSlippage,
-        uint16 managerFeeBPS
+        uint16 managerFeeBPS,
+        uint256 coolDownPeriod
     );
     event RebalanceVault(address vault, address caller);
     event AddOperators(address[] operators);
@@ -97,6 +101,8 @@ contract SimpleManager is OwnableUpgradeable {
         require(params.managerFeeBPS > 0, "MFB");
         /// @dev 10% max slippage allowed by the manager.
         require(params.maxSlippage <= ten_percent, "MS");
+        /// @dev coolDownPeriod should be higher than zero.
+        require(params.coolDownPeriod > 0, "CDPZ");
 
         if (params.managerFeeBPS != IArrakisV2(params.vault).managerFeeBPS()) {
             IArrakisV2(params.vault).setManagerFeeBPS(params.managerFeeBPS);
@@ -108,7 +114,9 @@ contract SimpleManager is OwnableUpgradeable {
             oracle: params.oracle,
             maxDeviation: params.maxDeviation,
             maxSlippage: params.maxSlippage,
-            managerFeeBPS: params.managerFeeBPS
+            managerFeeBPS: params.managerFeeBPS,
+            coolDownPeriod: params.coolDownPeriod,
+            lastRebalanceTimestamp: 0 /// @dev rebalance can happen any time.
         });
 
         emit InitManagement(
@@ -116,17 +124,20 @@ contract SimpleManager is OwnableUpgradeable {
             address(params.oracle),
             params.maxDeviation,
             params.maxSlippage,
-            params.managerFeeBPS
+            params.managerFeeBPS,
+            params.coolDownPeriod
         );
     }
 
     /// @notice Rebalance vault
     /// @dev only an operator of the contract Arrakis Finance can call the contract
     /// @param vault_ address of the Arrakis V2 vault to rebalance
+    /// @param operatorMaxDeviation_ specific max deviation wanted by operator.
     /// @param rebalanceParams_ rebalance parameters.
     // solhint-disable-next-line function-max-lines, code-complexity
     function rebalance(
         address vault_,
+        uint24 operatorMaxDeviation_,
         Rebalance calldata rebalanceParams_
     ) external {
         require(_operators.contains(msg.sender), "NO");
@@ -136,14 +147,23 @@ contract SimpleManager is OwnableUpgradeable {
             "NM"
         );
         VaultInfo memory vaultInfo = vaults[vault_];
+        require(
+            vaultInfo.lastRebalanceTimestamp + vaultInfo.coolDownPeriod <
+                block.timestamp, // solhint-disable-line not-rely-on-time
+            "CP"
+        );
+        require(vaultInfo.maxDeviation >= operatorMaxDeviation_, "OMD");
+
+        {
+            VaultInfo storage vaultInfoS = vaults[vault_];
+            // solhint-disable-next-line not-rely-on-time
+            vaultInfoS.lastRebalanceTimestamp = block.timestamp;
+        }
 
         address token0;
         address token1;
         uint8 token0Decimals;
         uint8 token1Decimals;
-        uint24[] memory checked;
-        uint256 oraclePrice;
-        uint256 increment;
 
         uint256 mintsLength = rebalanceParams_.mints.length;
 
@@ -154,48 +174,16 @@ contract SimpleManager is OwnableUpgradeable {
             token1Decimals = IDecimals(token1).decimals();
         }
 
-        if (mintsLength > 0) {
-            checked = new uint24[](mintsLength);
-            oraclePrice = vaultInfo.oracle.getPrice0();
-        }
-
-        for (uint256 i; i < mintsLength; ++i) {
-            if (
-                _includes(
-                    rebalanceParams_.mints[i].range.feeTier,
-                    checked,
-                    increment
-                )
-            ) continue;
-
-            IUniswapV3Pool pool = IUniswapV3Pool(
-                _getPool(
-                    token0,
-                    token1,
-                    rebalanceParams_.mints[i].range.feeTier
-                )
-            );
-
-            uint256 sqrtPriceX96;
-
-            (sqrtPriceX96, , , , , , ) = pool.slot0();
-
-            uint256 poolPrice = FullMath.mulDiv(
-                sqrtPriceX96 * sqrtPriceX96,
-                10 ** token0Decimals,
-                2 ** 192
-            );
-
-            _checkDeviation(
-                poolPrice,
-                oraclePrice,
-                vaultInfo.maxDeviation,
-                token1Decimals
-            );
-
-            checked[increment] = rebalanceParams_.mints[i].range.feeTier;
-            increment++;
-        }
+        _checkPoolsPrices(
+            mintsLength,
+            vaultInfo,
+            rebalanceParams_,
+            token0,
+            token1,
+            token0Decimals,
+            token1Decimals,
+            operatorMaxDeviation_
+        );
 
         // check expectedMinReturn on rebalance swap against oracle
         if (rebalanceParams_.swap.amountIn > 0) {
@@ -209,6 +197,17 @@ contract SimpleManager is OwnableUpgradeable {
         }
 
         IArrakisV2(vault_).rebalance(rebalanceParams_);
+
+        _checkPoolsPrices(
+            mintsLength,
+            vaultInfo,
+            rebalanceParams_,
+            token0,
+            token1,
+            token0Decimals,
+            token1Decimals,
+            operatorMaxDeviation_
+        );
 
         emit RebalanceVault(vault_, msg.sender);
     }
@@ -313,6 +312,71 @@ contract SimpleManager is OwnableUpgradeable {
     /// otherwise return false
     function isOperator(address operator_) external view returns (bool) {
         return _operators.contains(operator_);
+    }
+
+    // solhint-disable-next-line function-max-lines
+    function _checkPoolsPrices(
+        uint256 mintsLength_,
+        VaultInfo memory vaultInfo_,
+        Rebalance calldata rebalanceParams_,
+        address token0_,
+        address token1_,
+        uint8 token0Decimals_,
+        uint8 token1Decimals_,
+        uint24 operatorMaxDeviation_
+    ) internal view {
+        if (mintsLength_ == 0) return;
+
+        uint24[] memory checked = new uint24[](mintsLength_);
+        uint256 oraclePrice = vaultInfo_.oracle.getPrice0();
+        uint256 increment;
+        for (uint256 i; i < mintsLength_; ++i) {
+            if (
+                _includes(
+                    rebalanceParams_.mints[i].range.feeTier,
+                    checked,
+                    increment
+                )
+            ) continue;
+
+            IUniswapV3Pool pool = IUniswapV3Pool(
+                _getPool(
+                    token0_,
+                    token1_,
+                    rebalanceParams_.mints[i].range.feeTier
+                )
+            );
+
+            uint256 sqrtPriceX96;
+
+            (sqrtPriceX96, , , , , , ) = pool.slot0();
+
+            uint256 poolPrice;
+
+            if (sqrtPriceX96 <= type(uint128).max) {
+                poolPrice = FullMath.mulDiv(
+                    sqrtPriceX96 * sqrtPriceX96,
+                    10 ** token0Decimals_,
+                    2 ** 192
+                );
+            } else {
+                poolPrice = FullMath.mulDiv(
+                    FullMath.mulDiv(sqrtPriceX96, sqrtPriceX96, 1 << 64),
+                    10 ** token0Decimals_,
+                    1 << 128
+                );
+            }
+
+            _checkDeviation(
+                poolPrice,
+                oraclePrice,
+                operatorMaxDeviation_,
+                token1Decimals_
+            );
+
+            checked[increment] = rebalanceParams_.mints[i].range.feeTier;
+            increment++;
+        }
     }
 
     function _checkMinReturn(
