@@ -4,15 +4,15 @@ pragma solidity 0.8.13;
 import "../utils/TestWrapper.sol";
 import "forge-std/Vm.sol";
 
-import "../../contracts/oracles/OracleWSTETHUSDC.sol";
+import "../../contracts/oracles/OracleWSTETH.sol";
 import {
     ChainLinkOraclePivot
 } from "../../contracts/oracles/ChainLinkOraclePivot.sol";
 import {IWstETH} from "../../contracts/interfaces/IWstETH.sol";
 import "../mocks/OracleWSTETHUSDCHelper.sol";
 
-contract OracleWSTETHUSDCTest is TestWrapper {
-    // OracleWSTETHUSDC public oracle;
+contract OracleWSTETHTest is TestWrapper {
+    // OracleWSTETH public oracle;
     ChainLinkOraclePivot public stethUSDCOracle;
     IWstETH public wstETH;
 
@@ -44,25 +44,26 @@ contract OracleWSTETHUSDCTest is TestWrapper {
         );
         wstETH = IWstETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
-        // oracle = new OracleWSTETHUSDC(stethUSDCOracle, wstETH);
+        // oracle = new OracleWSTETH(stethUSDCOracle, wstETH);
     }
 
     function testOracleWSTETHUSDCCreationWithAddressZeroOracle() public {
         vm.expectRevert(abi.encodeWithSelector(AddressZero.selector));
 
-        new OracleWSTETHUSDC(ChainLinkOraclePivot(address(0)), wstETH);
+        new OracleWSTETH(ChainLinkOraclePivot(address(0)), wstETH, false);
 
         vm.expectRevert(abi.encodeWithSelector(AddressZero.selector));
 
-        new OracleWSTETHUSDC(stethUSDCOracle, IWstETH(address(0)));
+        new OracleWSTETH(stethUSDCOracle, IWstETH(address(0)), false);
     }
 
     function testOracleWSTETHUSDCWhenGetPrice0Failed() public {
         ChainLinkOraclePivotMock chainlinkOracleMock = new ChainLinkOraclePivotMock();
 
-        OracleWSTETHUSDC oracle = new OracleWSTETHUSDC(
+        OracleWSTETH oracle = new OracleWSTETH(
             chainlinkOracleMock,
-            wstETH
+            wstETH,
+            false
         );
 
         vm.expectRevert(
@@ -75,9 +76,10 @@ contract OracleWSTETHUSDCTest is TestWrapper {
     function testOracleWSTETHUSDCWhenGetPrice1Failed() public {
         ChainLinkOraclePivotMock chainlinkOracleMock = new ChainLinkOraclePivotMock();
 
-        OracleWSTETHUSDC oracle = new OracleWSTETHUSDC(
+        OracleWSTETH oracle = new OracleWSTETH(
             chainlinkOracleMock,
-            wstETH
+            wstETH,
+            false
         );
 
         vm.expectRevert(
@@ -90,9 +92,10 @@ contract OracleWSTETHUSDCTest is TestWrapper {
     function testOracleWSTETHUSDCWhenGetStETHByWstETHFailed() public {
         WstETHMock wstETHMock = new WstETHMock();
 
-        OracleWSTETHUSDC oracle = new OracleWSTETHUSDC(
+        OracleWSTETH oracle = new OracleWSTETH(
             stethUSDCOracle,
-            wstETHMock
+            wstETHMock,
+            false
         );
 
         vm.expectRevert(
@@ -105,9 +108,10 @@ contract OracleWSTETHUSDCTest is TestWrapper {
     function testOracleWSTETHUSDCWhenGetWstETHByStETHFailed() public {
         WstETHMock wstETHMock = new WstETHMock();
 
-        OracleWSTETHUSDC oracle = new OracleWSTETHUSDC(
+        OracleWSTETH oracle = new OracleWSTETH(
             stethUSDCOracle,
-            wstETHMock
+            wstETHMock,
+            false
         );
 
         vm.expectRevert(

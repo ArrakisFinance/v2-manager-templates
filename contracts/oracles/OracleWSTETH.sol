@@ -15,22 +15,33 @@ error GetWstETHByStETHCallFailed();
 
 // #endregion errors.
 
-contract OracleWSTETHUSDC is IOracleWrapper {
-    IOracleWrapper public immutable stETHUSDCOracle;
+contract OracleWSTETH is IOracleWrapper {
+    /// @dev oracle should be stETH/Something
+    IOracleWrapper public immutable oracle;
     IWstETH public immutable wstETH;
+    bool internal immutable _isInversed;
 
-    constructor(IOracleWrapper stETHUSDCOracle_, IWstETH wstETH_) {
-        if (
-            address(stETHUSDCOracle_) == address(0) ||
-            address(wstETH_) == address(0)
-        ) revert AddressZero();
-        stETHUSDCOracle = stETHUSDCOracle_;
+    constructor(IOracleWrapper oracle_, IWstETH wstETH_, bool isInversed_) {
+        if (address(oracle_) == address(0) || address(wstETH_) == address(0))
+            revert AddressZero();
+        oracle = oracle_;
         wstETH = wstETH_;
+        _isInversed = isInversed_;
     }
 
     function getPrice0() external view returns (uint256) {
+        if (_isInversed) return _getPrice1();
+        return _getPrice0();
+    }
+
+    function getPrice1() external view returns (uint256) {
+        if (_isInversed) return _getPrice0();
+        return _getPrice1();
+    }
+
+    function _getPrice0() internal view returns (uint256) {
         uint256 denominator = 1e18;
-        try stETHUSDCOracle.getPrice0() returns (uint256 price0) {
+        try oracle.getPrice0() returns (uint256 price0) {
             try wstETH.getStETHByWstETH(denominator) returns (
                 uint256 stETHAmounts
             ) {
@@ -43,9 +54,9 @@ contract OracleWSTETHUSDC is IOracleWrapper {
         }
     }
 
-    function getPrice1() external view returns (uint256) {
+    function _getPrice1() internal view returns (uint256) {
         uint256 denominator = 1e18;
-        try stETHUSDCOracle.getPrice1() returns (uint256 price1) {
+        try oracle.getPrice1() returns (uint256 price1) {
             try wstETH.getWstETHByStETH(denominator) returns (
                 uint256 wstETHAmounts
             ) {
