@@ -5,21 +5,21 @@ import {IOracleWrapper} from "../../contracts/interfaces/IOracleWrapper.sol";
 import {IWstETH} from "../../contracts/interfaces/IWstETH.sol";
 
 contract ChainLinkOraclePivotMock is IOracleWrapper {
-    function getPrice0() external view returns (uint256 price0) {
+    function getPrice0() external pure returns (uint256) {
         revert();
     }
 
-    function getPrice1() external view returns (uint256 price1) {
+    function getPrice1() external pure returns (uint256) {
         revert();
     }
 }
 
 contract WstETHMock is IWstETH {
-    function getStETHByWstETH(uint256) external view returns (uint256) {
+    function getStETHByWstETH(uint256) external pure returns (uint256) {
         revert();
     }
 
-    function getWstETHByStETH(uint256) external view returns (uint256) {
+    function getWstETHByStETH(uint256) external pure returns (uint256) {
         revert();
     }
 }
