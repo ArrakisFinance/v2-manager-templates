@@ -1,11 +1,12 @@
 import hre, { ethers, deployments, getNamedAccounts } from "hardhat";
 
-const token0 = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
-const token1 = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
-const priceFeedA = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612";
-const priceFeedB = "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3";
-const sequencerUpTimeFeed = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D";
-const outdated = 3600 * 24;
+const token0 = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
+const token1 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const priceFeedA = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
+const priceFeedB = "0x99997Ffe9ac2223921D8C6D06724cDD87093d662";
+const sequencerUpTimeFeed = "0x0000000000000000000000000000000000000000";
+const outdatedA = 86400;
+const outdatedB = 3600;
 const isPriceFeedAInversed = false;
 const isPriceFeedBInversed = true;
 
@@ -37,11 +38,13 @@ async function main() {
       priceFeedA,
       priceFeedB,
       sequencerUpTimeFeed,
-      outdated,
+      outdatedA,
+      outdatedB,
       isPriceFeedAInversed,
       isPriceFeedBInversed,
     ],
     log: hre.network.name !== "hardhat" ? true : false,
+    gasPrice: "12000000000",
   });
 
   console.log(`contract address ${deployResult.address}`);
