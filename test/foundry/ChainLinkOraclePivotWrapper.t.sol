@@ -58,6 +58,7 @@ contract ChainLinkOraclePivotWrapperTest is TestWrapper {
             priceFeed1,
             address(0),
             outdated,
+            outdated,
             isPriceFeed0Inversed,
             isPriceFeed1Inversed
         );
@@ -131,6 +132,7 @@ contract ChainLinkOraclePivotWrapperTest is TestWrapper {
             priceFeed0,
             priceFeed1,
             address(0),
+            outdated,
             outdated,
             isPriceFeed0Inversed,
             isPriceFeed1Inversed
@@ -206,6 +208,7 @@ contract ChainLinkOraclePivotWrapperTest is TestWrapper {
             priceFeed1,
             address(0),
             outdated,
+            outdated,
             isPriceFeed0Inversed,
             isPriceFeed1Inversed
         );
@@ -279,6 +282,7 @@ contract ChainLinkOraclePivotWrapperTest is TestWrapper {
             priceFeed0,
             priceFeed1,
             address(0),
+            outdated,
             outdated,
             isPriceFeed0Inversed,
             isPriceFeed1Inversed
