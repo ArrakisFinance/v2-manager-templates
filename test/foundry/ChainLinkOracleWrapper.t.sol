@@ -214,9 +214,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -297,9 +299,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -378,9 +382,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -610,9 +616,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -693,9 +701,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -774,9 +784,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -1006,9 +1018,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -1089,9 +1103,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -1170,9 +1186,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         weth.approve(vault, amount0);
@@ -1234,7 +1252,8 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         simpleManager.addOperators(operators);
 
         // solhint-disable-next-line max-line-length
-        vm.expectRevert(); /// @dev expect revert due to bigger impact of the swap on the pool we are minting.
+        /// @dev for block number 46734880 in polygon the price impact is small
+        // vm.expectRevert();
         simpleManager.rebalance(vault, 100, rebalancePayload);
     }
 
@@ -1405,9 +1424,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         wmatic.approve(vault, amount0);
@@ -1488,9 +1509,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, amountOfToken0 * 2, 0);
+            .getMintAmounts(vaultV2, amountOfToken0 * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         wmatic.approve(vault, amount0);
@@ -1569,9 +1592,11 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, amountOfToken1 * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, amountOfToken1 * 2);
 
         vm.prank(msg.sender);
         wmatic.approve(vault, amount0);
@@ -1793,7 +1818,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
                 feeTier_
             )
         );
-        (, int24 tick, , , , , ) = pool.slot0();
+        (uint160 sqrtPrice, int24 tick, , , , , ) = pool.slot0();
         tickSpacing = pool.tickSpacing();
 
         lowerTick = tick - (tick % tickSpacing) - tickSpacing;
@@ -1802,7 +1827,7 @@ contract ChainLinkOracleWrapperTest is TestWrapper {
         resolver = IArrakisV2Resolver(arrakisV2Resolver);
 
         (amount0, amount1) = resolver.getAmountsForLiquidity(
-            tick,
+            sqrtPrice,
             lowerTick,
             upperTick,
             1e18
