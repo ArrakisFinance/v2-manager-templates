@@ -1,16 +1,13 @@
 import hre, { ethers, getNamedAccounts } from "hardhat";
 
-const chainLinkOraclePivot = "0xB82C4D83FA50bFA04E8778529d58305Cf3feE83e";
+const chainLinkOracle = "0x654B32A1230A78cE2FeB4CC42952dC89C5f482C1";
 
 const token0 = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
-const token1 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const priceFeedA = "0x99997Ffe9ac2223921D8C6D06724cDD87093d662";
-const priceFeedB = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
+const token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const priceFeed = "0x30496218Ad394c677092dAbf9Ab1CF8406C588aB";
 const sequencerUpTimeFeed = "0x0000000000000000000000000000000000000000";
-const outdatedA = 3600;
-const outdatedB = 86400;
-const isPriceFeedAInversed = false;
-const isPriceFeedBInversed = true;
+const outdated = 86400;
+const isPriceFeedInversed = false;
 
 async function main() {
   const { deployer } = await getNamedAccounts();
@@ -31,17 +28,14 @@ async function main() {
   ).decimals();
 
   await hre.run("verify:verify", {
-    address: chainLinkOraclePivot,
+    address: chainLinkOracle,
     constructorArguments: [
       token0Decimals,
       token1Decimals,
-      priceFeedA,
-      priceFeedB,
+      priceFeed,
       sequencerUpTimeFeed,
-      outdatedA,
-      outdatedB,
-      isPriceFeedAInversed,
-      isPriceFeedBInversed,
+      outdated,
+      isPriceFeedInversed,
     ],
     // other args
   });
