@@ -1,5 +1,5 @@
 import hre, { ethers, getNamedAccounts } from "hardhat";
-import { IArrakisV2Factory, SimpleManager } from "../typechain";
+import { SimpleManager } from "../typechain";
 import { getAddresses } from "../src/addresses";
 
 const addresses = getAddresses(hre.network.name);
@@ -29,11 +29,11 @@ async function main() {
   )) as SimpleManager;
   const { deployer } = await getNamedAccounts();
 
-  const arrakisV2Factory = (await ethers.getContractAt(
-    "IArrakisV2Factory",
+  const arrakisV2Factory = await ethers.getContractAt(
+    "function deployVault((uint24[],address,address,address,uint256,uint256,address,address[]),bool) returns(address vault)",
     addresses.ArrakisV2Factory,
     deployer
-  )) as IArrakisV2Factory;
+  );
 
   /// @dev create a beacon proxy
   const receipt = await (
@@ -56,7 +56,7 @@ async function main() {
   ).wait();
 
   const event = receipt?.events?.find(
-    (event) => event.event === "VaultCreated"
+    (event: { event: string }) => event.event === "VaultCreated"
   );
   // eslint-disable-next-line no-unsafe-optional-chaining
   const result = event?.args;
