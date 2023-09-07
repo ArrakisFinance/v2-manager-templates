@@ -420,9 +420,11 @@ contract SimpleManagerTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, AMOUNT_OF_USDC * 2, 0);
+            .getMintAmounts(vaultV2, AMOUNT_OF_USDC * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -501,9 +503,11 @@ contract SimpleManagerTest is TestWrapper {
         uint256 init1 = 0;
         vm.store(vault, bytes32(slot), bytes32(init1));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, AMOUNT_OF_USDC * 2, 0);
+            .getMintAmounts(vaultV2, AMOUNT_OF_USDC * 2, numberOfRange + 1);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -580,9 +584,11 @@ contract SimpleManagerTest is TestWrapper {
         uint256 init0 = 0;
         vm.store(vault, bytes32(slot), bytes32(init0));
 
+        uint256 numberOfRange = vaultV2.getRanges().length;
+
         //  mint some vault tokens.
         (uint256 amount0, uint256 amount1, uint256 mintAmount) = resolver
-            .getMintAmounts(vaultV2, 0, AMOUNT_OF_WETH * 2);
+            .getMintAmounts(vaultV2, numberOfRange + 1, AMOUNT_OF_WETH * 2);
 
         vm.prank(msg.sender);
         usdc.approve(vault, amount0);
@@ -1098,7 +1104,7 @@ contract SimpleManagerTest is TestWrapper {
         IUniswapV3Pool pool = IUniswapV3Pool(
             uniswapV3Factory.getPool(address(usdc), address(weth), 500)
         );
-        (, int24 tick, , , , , ) = pool.slot0();
+        (uint160 sqrtPrice, int24 tick, , , , , ) = pool.slot0();
         tickSpacing = pool.tickSpacing();
 
         lowerTick = tick - (tick % tickSpacing) - tickSpacing;
@@ -1107,7 +1113,7 @@ contract SimpleManagerTest is TestWrapper {
         resolver = IArrakisV2Resolver(arrakisV2Resolver);
 
         (amount0, amount1) = resolver.getAmountsForLiquidity(
-            tick,
+            sqrtPrice,
             lowerTick,
             upperTick,
             1e18

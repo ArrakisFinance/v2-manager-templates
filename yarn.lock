@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@arrakisfi/v2-core@1.1.9":
-  version "1.1.9"
-  resolved "https://registry.yarnpkg.com/@arrakisfi/v2-core/-/v2-core-1.1.9.tgz#0013a53721fe7a00716f4782b041c8fdbe202e5b"
-  integrity sha512-SutpQeLzjYcRkI9nsMVlY/PlztjH6Z42UjC8c/qaC/hQg+/y6Ru12dxLI2COC+0O4QXOntFD5MXrbcUfDUF7VA==
+"@arrakisfi/v2-core@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@arrakisfi/v2-core/-/v2-core-1.2.0.tgz#b0d6e51f343a4d9ef6a121819fe0074e46ae23db"
+  integrity sha512-TB2VBmXHqPwVvbbWheynYEpaVM0sFGIkd8Cf270B4Fs7OpSUHn0SC+t7IwjKpggZKVXXXAcHwNk3CV36JRUxig==
 
 "@arrakisfi/v3-lib-0.8@0.1.4":
   version "0.1.4"
