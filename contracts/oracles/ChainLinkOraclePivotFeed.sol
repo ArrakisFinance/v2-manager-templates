@@ -39,7 +39,9 @@ contract ChainLinkOraclePivotFeed {
         uint256 outdatedA = oraclePivot.outdatedA();
         uint256 outdatedB = oraclePivot.outdatedB();
 
-        updatedAt = outdatedA > outdatedB ? outdatedB - 1 : outdatedA - 1;
+        updatedAt =
+            block.timestamp - // solhint-disable-line not-rely-on-time
+            (outdatedA > outdatedB ? outdatedB - 1 : outdatedA - 1);
 
         answer = SafeCast.toInt256(oraclePivot.getPrice0());
     }
