@@ -6,9 +6,7 @@ import "forge-std/Vm.sol";
 import {
     AggregatorV3Interface
 } from "../../contracts/interfaces/AggregatorV3Interface.sol";
-import {
-    IERC4626Custom
-} from "../../contracts/interfaces/IERC4626Custom.sol";
+import {IERC4626Custom} from "../../contracts/interfaces/IERC4626Custom.sol";
 import {OracleAdapter} from "../../contracts/oracles/OracleAdapter.sol";
 
 contract OracleAdapterTest is TestWrapper {
@@ -32,24 +30,12 @@ contract OracleAdapterTest is TestWrapper {
     // #region test latestRoundData.
 
     function testLatestRoundData() public {
-        (
-            ,
-            int256 answer,
-            ,
-            ,
-            
-        ) = oracleAdapter.latestRoundData();
+        (, int256 answer, , , ) = oracleAdapter.latestRoundData();
 
         console.logString("pxETH/ETH price : ");
         console.logInt(answer);
 
-        (
-            ,
-            answer,
-            ,
-            ,
-            
-        ) = apxETH_ETH.latestRoundData();
+        (, answer, , , ) = apxETH_ETH.latestRoundData();
 
         console.logString("apxETH/ETH price : ");
         console.logInt(answer);

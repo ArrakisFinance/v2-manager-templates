@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 
 import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 import {IERC4626Custom} from "../interfaces/IERC4626Custom.sol";
+import {IDecimals} from "../interfaces/IDecimals.sol";
 import {FullMath} from "@arrakisfi/v3-lib-0.8/contracts/FullMath.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
@@ -43,7 +44,7 @@ contract OracleAdapter {
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = priceFeed
             .latestRoundData();
-        uint256 denominator = 1e18;
+        uint256 denominator = 10 ** IDecimals(token).decimals();
         uint256 price = SafeCast.toUint256(answer);
 
         try IERC4626Custom(token).assetsPerShare() returns (
