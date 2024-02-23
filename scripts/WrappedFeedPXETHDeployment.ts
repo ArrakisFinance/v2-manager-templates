@@ -13,7 +13,6 @@ async function main() {
     from: deployer,
     args: [priceFeed, token, isPriceFeedInversed],
     log: hre.network.name !== "hardhat" ? true : false,
-    gasPrice: "12000000000",
   });
 
   console.log(`contract address ${deployResult.address}`);
