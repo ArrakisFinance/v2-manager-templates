@@ -9,7 +9,7 @@ async function main() {
 
   const { deployer } = await getNamedAccounts();
 
-  const deployResult = await deploy("WrappedFeed", {
+  const deployResult = await deploy("WrappedFeedSTETH", {
     from: deployer,
     args: [priceFeed, wstETH, isPriceFeedInversed],
     log: hre.network.name !== "hardhat" ? true : false,

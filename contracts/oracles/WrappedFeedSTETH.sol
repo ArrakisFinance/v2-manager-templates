@@ -14,7 +14,7 @@ error GetWstETHByStETHCallFailed();
 
 // #endregion errors.
 
-contract WrappedFeed {
+contract WrappedFeedSTETH {
     AggregatorV3Interface public immutable priceFeed;
     IWstETH public immutable wstETH;
     bool public immutable ispriceFeedInversed;
