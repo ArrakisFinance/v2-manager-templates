@@ -1,7 +1,7 @@
 import hre, { deployments, getNamedAccounts } from "hardhat";
 
-const priceFeed = "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8";
-const wstETH = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
+const priceFeed = "0x19219BC90F48DeE4d5cF202E09c438FAacFd8Bea";
+const token = "0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6";
 const isPriceFeedInversed = false;
 
 async function main() {
@@ -9,9 +9,9 @@ async function main() {
 
   const { deployer } = await getNamedAccounts();
 
-  const deployResult = await deploy("WrappedFeed", {
+  const deployResult = await deploy("WrappedFeedPXETH", {
     from: deployer,
-    args: [priceFeed, wstETH, isPriceFeedInversed],
+    args: [priceFeed, token, isPriceFeedInversed],
     log: hre.network.name !== "hardhat" ? true : false,
     gasPrice: "12000000000",
   });

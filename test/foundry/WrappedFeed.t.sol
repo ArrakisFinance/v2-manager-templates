@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 import "../utils/TestWrapper.sol";
 import "forge-std/Vm.sol";
 
-import "../../contracts/oracles/WrappedFeed.sol";
+import "../../contracts/oracles/WrappedFeedSTETH.sol";
 import {IWstETH} from "../../contracts/interfaces/IWstETH.sol";
 import {
     AggregatorV3Interface
@@ -16,7 +16,7 @@ import "../mocks/WrappedFeedHelper.sol";
 // } from "../../contracts/oracles/ChainLinkOraclePivot.sol";
 
 contract WrappedFeedTest is TestWrapper {
-    WrappedFeed public oracle;
+    WrappedFeedSTETH public oracle;
     IWstETH public wstETH;
     AggregatorV3Interface public priceFeed;
 
@@ -32,17 +32,17 @@ contract WrappedFeedTest is TestWrapper {
     function testOracleWSTETHUSDCCreationWithAddressZeroOracle() public {
         vm.expectRevert(abi.encodeWithSelector(AddressZero.selector));
 
-        new WrappedFeed(AggregatorV3Interface(address(0)), wstETH, false);
+        new WrappedFeedSTETH(AggregatorV3Interface(address(0)), wstETH, false);
 
         vm.expectRevert(abi.encodeWithSelector(AddressZero.selector));
 
-        new WrappedFeed(priceFeed, IWstETH(address(0)), false);
+        new WrappedFeedSTETH(priceFeed, IWstETH(address(0)), false);
     }
 
     function testOracleWSTETHUSDCWhenGetStETHByWstETHFailed() public {
         WstETHMock wstETHMock = new WstETHMock();
 
-        oracle = new WrappedFeed(priceFeed, wstETHMock, false);
+        oracle = new WrappedFeedSTETH(priceFeed, wstETHMock, false);
 
         vm.expectRevert(
             abi.encodeWithSelector(GetStETHByWstETHCallFailed.selector)
@@ -54,7 +54,7 @@ contract WrappedFeedTest is TestWrapper {
     function testOracleWSTETHUSDCWhenGetWstETHByStETHFailed() public {
         WstETHMock wstETHMock = new WstETHMock();
 
-        oracle = new WrappedFeed(priceFeed, wstETHMock, true);
+        oracle = new WrappedFeedSTETH(priceFeed, wstETHMock, true);
 
         vm.expectRevert(
             abi.encodeWithSelector(GetWstETHByStETHCallFailed.selector)
@@ -65,7 +65,7 @@ contract WrappedFeedTest is TestWrapper {
 
     /// @dev full setup in mainnet network.
     // function testPrice() public {
-    //     oracle = new WrappedFeed(priceFeed, wstETH, false);
+    //     oracle = new WrappedFeedSTETH(priceFeed, wstETH, false);
 
     //     (, int256 answer, , , ) = oracle.latestRoundData();
 
