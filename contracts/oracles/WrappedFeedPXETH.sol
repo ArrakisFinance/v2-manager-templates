@@ -14,7 +14,7 @@ error GetAssetsPerShareFailed();
 
 // #endregion errors.
 
-contract OracleAdapter {
+contract WrappedFeedPXETH {
     AggregatorV3Interface public immutable priceFeed;
     address public immutable token;
     bool public immutable ispriceFeedInversed;
